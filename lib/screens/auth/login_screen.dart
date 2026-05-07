@@ -102,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'Plan trips with friends',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       'or',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),

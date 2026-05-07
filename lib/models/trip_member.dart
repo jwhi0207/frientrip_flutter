@@ -11,6 +11,7 @@ class TripMember {
   final double pendingPaymentAmount;
   final String pendingPaymentStatus;
   final String status;
+  final bool isGuest;
 
   const TripMember({
     required this.uid,
@@ -23,6 +24,7 @@ class TripMember {
     this.pendingPaymentAmount = 0.0,
     this.pendingPaymentStatus = 'none',
     this.status = 'active',
+    this.isGuest = false,
   });
 
   bool get isDeactivated => status == 'deactivated';
@@ -40,6 +42,7 @@ class TripMember {
       pendingPaymentAmount: (d['pendingPaymentAmount'] as num?)?.toDouble() ?? 0.0,
       pendingPaymentStatus: d['pendingPaymentStatus'] as String? ?? 'none',
       status: d['status'] as String? ?? 'active',
+      isGuest: d['isGuest'] as bool? ?? false,
     );
   }
 
@@ -54,6 +57,7 @@ class TripMember {
     'pendingPaymentAmount': pendingPaymentAmount,
     'pendingPaymentStatus': pendingPaymentStatus,
     'status': status,
+    'isGuest': isGuest,
   };
 
   TripMember copyWith({
@@ -65,6 +69,7 @@ class TripMember {
     double? pendingPaymentAmount,
     String? pendingPaymentStatus,
     String? status,
+    bool? isGuest,
   }) => TripMember(
     uid: uid,
     displayName: displayName ?? this.displayName,
@@ -76,5 +81,6 @@ class TripMember {
     pendingPaymentAmount: pendingPaymentAmount ?? this.pendingPaymentAmount,
     pendingPaymentStatus: pendingPaymentStatus ?? this.pendingPaymentStatus,
     status: status ?? this.status,
+    isGuest: isGuest ?? this.isGuest,
   );
 }
