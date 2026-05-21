@@ -6,6 +6,7 @@ import '../../models/ride_request.dart';
 import '../../models/trip_member.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/vivid_card.dart';
 const _vehicleEmojis = ['🚗', '🚐', '🛻', '🚌', '🏎️', '🚙'];
 
 class CarpoolScreen extends ConsumerStatefulWidget {
@@ -175,16 +176,18 @@ class _CarpoolScreenState extends ConsumerState<CarpoolScreen> {
               ),
             )
           else
-            for (final ride in rides)
+            for (int rideIdx = 0; rideIdx < rides.length; rideIdx++)
               Padding(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 6),
                 child: _RideCard(
-                  ride: ride,
+                  ride: rides[rideIdx],
+                  accentIndex: rideIdx,
                   members: members,
                   currentUid: uid,
-                  canEdit: uid == ride.driverUid || uid == ownerId,
+                  canEdit: uid == rides[rideIdx].driverUid || uid == ownerId,
                   onClaim: () {
+                    final ride = rides[rideIdx];
                     final displayName = members
                             .where((m) => m.uid == uid)
                             .firstOrNull
@@ -198,6 +201,7 @@ class _CarpoolScreenState extends ConsumerState<CarpoolScreen> {
                         );
                   },
                   onUnclaim: () {
+                    final ride = rides[rideIdx];
                     final displayName = members
                             .where((m) => m.uid == uid)
                             .firstOrNull
@@ -210,8 +214,8 @@ class _CarpoolScreenState extends ConsumerState<CarpoolScreen> {
                           displayName,
                         );
                   },
-                  onEdit: () => _showAddSheet(editing: ride),
-                  onDelete: () => _confirmDelete(ride),
+                  onEdit: () => _showAddSheet(editing: rides[rideIdx]),
+                  onDelete: () => _confirmDelete(rides[rideIdx]),
                 ),
               ),
 
@@ -290,6 +294,7 @@ class _CarpoolScreenState extends ConsumerState<CarpoolScreen> {
 
 class _RideCard extends StatelessWidget {
   final Ride ride;
+  final int accentIndex;
   final List<TripMember> members;
   final String? currentUid;
   final bool canEdit;
@@ -300,6 +305,7 @@ class _RideCard extends StatelessWidget {
 
   const _RideCard({
     required this.ride,
+    required this.accentIndex,
     required this.members,
     required this.currentUid,
     required this.canEdit,
@@ -319,8 +325,8 @@ class _RideCard extends StatelessWidget {
         ? ride.passengerUids.length / ride.totalSeats
         : 0.0;
 
-    return Card(
-      elevation: 1,
+    return VividCard(
+      accentIndex: accentIndex,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

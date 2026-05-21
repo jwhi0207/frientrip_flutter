@@ -60,17 +60,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-        backgroundColor: theme.colorScheme.surface,
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 32),
+              const Spacer(),
+              Center(
+                child: SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/frientrip_logo.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Frientrip',
+                style: theme.textTheme.displaySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Group Travel, Organized.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
               TextField(
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
@@ -125,6 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: () => context.go('/login'),
                 child: const Text('Already have an account? Sign in'),
               ),
+              const Spacer(),
             ],
           ),
         ),

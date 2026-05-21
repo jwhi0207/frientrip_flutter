@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/vivid_card.dart';
 
 class GroupScreen extends ConsumerStatefulWidget {
   final String tripId;
@@ -58,6 +59,7 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
         // ── Invite Code (visible when enabled) ──────────────────────
         if (inviteCode != null && inviteCodeEnabled)
           _SectionCard(
+            accentIndex: 0,
             child: Column(
               children: [
                 Text(
@@ -104,6 +106,7 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
         // ── Admin: invite code controls ──────────────────────────────
         if (isAdmin)
           _SectionCard(
+            accentIndex: 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -145,6 +148,7 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
         // ── Admin: email invite ──────────────────────────────────────
         if (isAdmin)
           _SectionCard(
+            accentIndex: 2,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -212,9 +216,8 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-              child: Card(
-                elevation: 0,
-                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+              child: VividCard(
+                accentIndex: pendingEmails.indexOf(email),
                 child: Row(
                   children: [
                     Expanded(
@@ -334,13 +337,17 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
-  const _SectionCard({required this.child});
+  final int accentIndex;
+  const _SectionCard({required this.child, required this.accentIndex});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: VividCard(
+        accentIndex: accentIndex,
+        child: Padding(padding: const EdgeInsets.all(16), child: child),
+      ),
     );
   }
 }

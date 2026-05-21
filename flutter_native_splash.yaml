@@ -1,0 +1,19 @@
+flutter_native_splash:
+  # Light mode: white background with logo
+  color: "#ffffff"
+  image: assets/images/frientrip_logo.png
+
+  # Dark mode: brand dark surface with logo
+  color_dark: "#05070a"
+  image_dark: assets/images/frientrip_logo.png
+
+  # Android 12+ uses the dedicated SplashScreen API.
+  android_12:
+    color: "#ffffff"
+    color_dark: "#05070a"
+    image: assets/images/frientrip_logo.png
+    image_dark: assets/images/frientrip_logo.png
+
+  android: true
+  ios: true
+  web: false
