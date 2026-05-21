@@ -5,6 +5,7 @@ import '../../models/shared_expense.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/vivid_card.dart';
 
 class ExpensesScreen extends ConsumerWidget {
   final String tripId;
@@ -117,12 +118,13 @@ class ExpensesScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  for (final expense in pending)
+                  for (int i = 0; i < pending.length; i++)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: _ExpenseCard(
                         tripId: tripId,
-                        expense: expense,
+                        accentIndex: i,
+                        expense: pending[i],
                         isAdmin: isAdmin,
                         currentUid: uid,
                         currentUserName:
@@ -151,12 +153,13 @@ class ExpensesScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  for (final expense in approved)
+                  for (int i = 0; i < approved.length; i++)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: _ExpenseCard(
                         tripId: tripId,
-                        expense: expense,
+                        accentIndex: i,
+                        expense: approved[i],
                         isAdmin: isAdmin,
                         currentUid: uid,
                         currentUserName:
@@ -180,6 +183,7 @@ class ExpensesScreen extends ConsumerWidget {
 
 class _ExpenseCard extends ConsumerWidget {
   final String tripId;
+  final int accentIndex;
   final SharedExpense expense;
   final bool isAdmin;
   final String? currentUid;
@@ -187,6 +191,7 @@ class _ExpenseCard extends ConsumerWidget {
 
   const _ExpenseCard({
     required this.tripId,
+    required this.accentIndex,
     required this.expense,
     required this.isAdmin,
     required this.currentUid,
@@ -200,8 +205,8 @@ class _ExpenseCard extends ConsumerWidget {
         ? 'Split Evenly'
         : 'Split by Nights';
 
-    return Card(
-      elevation: 1,
+    return VividCard(
+      accentIndex: accentIndex,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -87,9 +87,14 @@ ThemeData buildLightTheme() => ThemeData(
     ),
   ),
   scaffoldBackgroundColor: kLightBackground,
-  cardTheme: const CardThemeData(
-    color: kLightSurface,
+  cardTheme: CardThemeData(
+    color: const Color(0xFFF8FAFC),
     surfaceTintColor: Colors.transparent,
+    elevation: 6,
+    shape: RoundedRectangleBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
+      side: BorderSide(color: kElectricCyan.withValues(alpha: 0.30), width: 2),
+    ),
   ),
 );
 
@@ -107,8 +112,13 @@ ThemeData buildDarkTheme() => ThemeData(
     ),
   ),
   scaffoldBackgroundColor: kDarkBackground,
-  cardTheme: const CardThemeData(
+  cardTheme: CardThemeData(
     color: kDarkCardSurface,
     surfaceTintColor: Colors.transparent,
+    elevation: 1,
+    shape: RoundedRectangleBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
+      side: const BorderSide(color: kElectricCyan, width: 2),
+    ),
   ),
 );
