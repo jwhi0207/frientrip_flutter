@@ -79,31 +79,43 @@ GoRouter with `StatefulShellRoute.indexedStack` for the 5-tab trip shell:
 - Firestore rule: members `allow read` includes `|| request.auth.uid == uid` (needed for deactivation check before joining)
 
 ## Current build status
-- ✅ Firebase connected (`firebase_options.dart` generated — not in git, must be regenerated on each machine)
-- ✅ Auth screens: email/password + Google Sign-In
-- ✅ Router with auth redirect
-- ✅ Models: Trip, TripMember, UserProfile
-- 🚧 Trip list screen — stub only
-- ❌ Everything else not yet built
+- ✅ Full feature parity with Android app (all 10 screens complete)
+- ✅ App ID: `com.bennybokki.frientrip` (matches Android)
+- ✅ Firebase connected — Auth, Firestore, Storage
+- ✅ Google Sign-In: debug SHA-1 registered in Firebase Console
+- ⏳ iOS: `GoogleService-Info.plist` + URL schemes still needed (Phase 3)
+- ⏳ Release signing keystore not yet configured (Phase 8)
 
-## Implementation plan
-See the 10-phase plan:
-- Phase 0: Foundation (models, repositories, shared widgets, CostCalculator)
-- Phase 1: Trip List Screen (full)
-- Phase 2: Trip Shell (navigation scaffold)
-- Phase 3: Trip Dashboard
-- Phase 4: House Details
-- Phase 5: Supplies Screen
-- Phase 6: Expenses Screen
-- Phase 7: Carpool Screen
-- Phase 8: Group/Invite Screen
-- Phase 9: Manage Group + Trip History
-- Phase 10: Profile Screen
+## Sensitive files (NOT in git — must be obtained per machine)
+- `lib/firebase_options.dart` — regenerate with `flutterfire configure`
+- `android/app/google-services.json` — download from Firebase Console → Project Settings → Android app (`com.bennybokki.frientrip`)
+- `ios/Runner/GoogleService-Info.plist` — download from Firebase Console → Project Settings → iOS app, then add to Xcode Runner target
 
 ## First-time setup on a new machine
 1. Clone the repo
-2. Install Flutter SDK
+2. Install Flutter SDK (`C:\Users\PC\flutter` on this machine)
 3. Run `flutter pub get`
-4. Run `flutterfire configure` and select the `frientrip` Firebase project (generates `lib/firebase_options.dart`)
-5. For Google Sign-In on Android: register the machine's debug SHA-1 in Firebase Console → Project Settings → Android app
-6. Run `flutter run`
+4. Download `android/app/google-services.json` from Firebase Console → Project Settings → Android app (`com.bennybokki.frientrip`)
+5. Run `flutterfire configure` → select `frientrip-1e322` project (generates `lib/firebase_options.dart`)
+6. **Android Google Sign-In**: get your machine's debug SHA-1 and register it in Firebase Console:
+   - Use Android Studio's JDK keytool (not JDK 8):
+     `"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android -keypass android`
+   - Copy the SHA1 line → Firebase Console → Project Settings → Android app → Add fingerprint
+   - Download the updated `google-services.json` and replace `android/app/google-services.json`
+7. Run `flutter run`
+
+## This machine's registered debug SHA-1
+`20:83:51:0B:40:81:60:77:AE:B9:0C:EB:57:5E:C8:87:D2:60:60:F4` (registered 2026-05-20)
+
+## Release signing
+- Keystore: `C:\Users\PC\keystores\frientrip-release.jks` (NOT in git — keep backed up)
+- Alias: `frientrip`
+- Release SHA-1: `BB:2B:2E:73:13:AF:EA:36:60:B4:BD:47:33:18:03:8F:E1:EA:A0:7F` (registered in Firebase Console)
+- Credentials stored in `android/key.properties` (gitignored) — must be recreated on new machines
+- Build release APK: `flutter build apk --release`
+- Build release App Bundle (for Play Store): `flutter build appbundle --release`
+
+## Firebase rules deployment
+- Firestore rules: `firestore.rules` → `firebase deploy --only firestore:rules`
+- Storage rules: `storage.rules` → `firebase deploy --only storage`
+- Both at once: `firebase deploy --only firestore:rules,storage`
