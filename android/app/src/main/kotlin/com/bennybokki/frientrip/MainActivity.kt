@@ -1,4 +1,4 @@
-package com.example.frientrip
+package com.bennybokki.frientrip
 
 import io.flutter.embedding.android.FlutterActivity
 

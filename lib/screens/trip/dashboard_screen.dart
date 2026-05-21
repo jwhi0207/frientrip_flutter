@@ -94,7 +94,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final availRides = rides.fold(0, (sum, r) => sum + r.availableSeats);
     final pendingExpenseCount = expenses.where((e) => !e.approved).length;
     final approvedTotal = expenses.where((e) => e.approved).fold(0.0, (sum, e) => sum + e.amount);
-    final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
     return Scaffold(
       body: tripAsync.when(
@@ -360,7 +360,7 @@ class _HeroCard extends StatelessWidget {
     final checkIn = (trip?.checkInMillis as int?) ?? 0;
     final checkOut = (trip?.checkOutMillis as int?) ?? 0;
     final houseURL = trip?.houseURL as String? ?? '';
-    final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+    final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
     final fmt = DateFormat('MMM d');
 
     return Card(

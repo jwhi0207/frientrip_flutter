@@ -62,7 +62,7 @@ class SupplyItem {
     final newNames = claimedNames.where((n) => n != displayName).toList();
     final newEntries = Map<String, String>.from(claimEntries)..remove(displayName);
     final newQuantity = newEntries.isEmpty
-        ? quantity
+        ? ''
         : newEntries.entries.map((e) => '${e.key}=${e.value}').join('|');
     return SupplyItem(
       id: id,
