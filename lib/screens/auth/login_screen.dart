@@ -93,18 +93,27 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/images/frientrip_logo.png',
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Frientrip',
                 style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
-                'Plan trips with friends',
-                style: theme.textTheme.bodyLarge?.copyWith(
+                'Group Travel, Organized.',
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
