@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,7 +81,7 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Frientrip'),
+        title: const Text('My Trips'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -93,14 +92,9 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.link),
+            icon: const Icon(Icons.group_add),
             tooltip: 'Join with code',
             onPressed: _showJoinDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),
@@ -240,7 +234,7 @@ class _TripCard extends StatelessWidget {
     final hasThumb =
         trip.thumbnailURL != null && trip.thumbnailURL!.isNotEmpty;
     final costStr = trip.totalCost > 0
-        ? NumberFormat.currency(symbol: '\$', decimalDigits: 0)
+        ? NumberFormat.currency(symbol: '\$', decimalDigits: 2)
             .format(trip.totalCost)
         : '';
 

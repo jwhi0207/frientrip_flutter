@@ -681,6 +681,10 @@ class TripRepository {
     await batch.commit();
   }
 
+  Future<void> deleteTrip(String tripId) async {
+    await _db.collection('trips').doc(tripId).delete();
+  }
+
   Future<void> _logHistory(
       String tripId, String category, String description) async {
     try {

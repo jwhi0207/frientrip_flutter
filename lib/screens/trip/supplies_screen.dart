@@ -702,7 +702,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
           else
             OutlinedButton.icon(
               onPressed: widget.onBillToGroup,
-              icon: const Icon(Icons.receipt_outlined, size: 18),
+              icon: const Icon(Icons.receipt, size: 18),
               label: const Text('Bill to Group'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48),

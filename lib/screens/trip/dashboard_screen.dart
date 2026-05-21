@@ -125,7 +125,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Expanded(
                         child: _FeatureCard(
-                          icon: Icons.shopping_bag_outlined,
+                          icon: Icons.shopping_bag,
                           badge: unclaimed > 0 ? '$unclaimed New' : null,
                           title: 'Supplies',
                           subtitle: supplies.isEmpty
@@ -139,7 +139,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _FeatureCard(
-                          icon: Icons.directions_car_outlined,
+                          icon: Icons.directions_car,
                           badge: rideRequests.isNotEmpty
                               ? '${rideRequests.length} Need Ride'
                               : availRides > 0
@@ -172,7 +172,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               color: Theme.of(context).colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Icon(Icons.account_balance_wallet_outlined,
+                            child: Icon(Icons.account_balance_wallet,
                                 color: Theme.of(context).colorScheme.primary,
                                 size: 20),
                           ),
@@ -770,7 +770,7 @@ class _MemberRow extends StatelessWidget {
                   const PopupMenuItem(
                       value: 'verify',
                       child: ListTile(
-                          leading: Icon(Icons.fact_check_outlined),
+                          leading: Icon(Icons.fact_check),
                           title: Text('Verify Payment'),
                           dense: true,
                           contentPadding: EdgeInsets.zero)),

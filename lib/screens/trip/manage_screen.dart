@@ -36,7 +36,7 @@ class ManageScreen extends ConsumerWidget {
           ? FloatingActionButton(
               onPressed: () => _showAddGuestDialog(context, ref, uid ?? ''),
               shape: const CircleBorder(),
-              child: const Icon(Icons.person_add),
+              child: const Icon(Icons.add),
             )
           : null,
       body: sorted.isEmpty
