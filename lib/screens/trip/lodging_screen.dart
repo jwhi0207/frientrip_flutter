@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
+import '../../utils/pickers.dart';
 
 class LodgingScreen extends ConsumerStatefulWidget {
   final String tripId;
@@ -81,7 +82,7 @@ class _LodgingScreenState extends ConsumerState<LodgingScreen> {
         ? DateTime.fromMillisecondsSinceEpoch(existing)
         : DateTime.now();
 
-    final picked = await showDatePicker(
+    final picked = await showPlatformDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2020),
@@ -103,10 +104,9 @@ class _LodgingScreenState extends ConsumerState<LodgingScreen> {
         ? DateTime.fromMillisecondsSinceEpoch(existing)
         : DateTime.now();
 
-    final picked = await showTimePicker(
+    final picked = await showPlatformTimePicker(
       context: context,
-      initialTime:
-          TimeOfDay(hour: existingDt.hour, minute: existingDt.minute),
+      initialTime: TimeOfDay(hour: existingDt.hour, minute: existingDt.minute),
     );
     if (picked == null || !mounted) return;
     setState(() {

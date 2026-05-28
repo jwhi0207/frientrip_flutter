@@ -1,4 +1,7 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/supply_item.dart';
 import '../../models/shared_expense.dart';
@@ -149,6 +152,30 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
   }
 
   void _showDeleteDialog(SupplyItem item) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Delete Item'),
+          content: Text('Remove "${item.name}" from the supplies list?'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                ref.read(tripRepositoryProvider).deleteSupplyItem(widget.tripId, item.id);
+                Navigator.pop(ctx);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -160,14 +187,11 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
               child: const Text('Cancel')),
           TextButton(
             onPressed: () {
-              ref
-                  .read(tripRepositoryProvider)
-                  .deleteSupplyItem(widget.tripId, item.id);
+              ref.read(tripRepositoryProvider).deleteSupplyItem(widget.tripId, item.id);
               Navigator.pop(ctx);
             },
             child: Text('Delete',
-                style:
-                    TextStyle(color: Theme.of(context).colorScheme.error)),
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),

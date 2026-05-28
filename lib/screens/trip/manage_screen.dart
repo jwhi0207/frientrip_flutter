@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -212,6 +215,31 @@ class ManageScreen extends ConsumerWidget {
 
   void _confirmDeactivate(BuildContext context, WidgetRef ref, String name,
       VoidCallback onConfirm) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Deactivate Member'),
+          content: Text(
+              'Deactivate $name? They will be removed from the group and all supplies/rides.'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                onConfirm();
+                Navigator.pop(ctx);
+              },
+              child: const Text('Deactivate'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -236,6 +264,30 @@ class ManageScreen extends ConsumerWidget {
 
   void _confirmReactivate(BuildContext context, WidgetRef ref, String name,
       VoidCallback onConfirm) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Reactivate Member'),
+          content: Text('Reactivate $name? They will rejoin the group.'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () {
+                onConfirm();
+                Navigator.pop(ctx);
+              },
+              child: const Text('Reactivate'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -259,6 +311,30 @@ class ManageScreen extends ConsumerWidget {
 
   void _confirmRemoveGuest(BuildContext context, WidgetRef ref, String name,
       VoidCallback onConfirm) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Remove Guest'),
+          content: Text('Permanently remove guest $name?'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                onConfirm();
+                Navigator.pop(ctx);
+              },
+              child: const Text('Remove'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

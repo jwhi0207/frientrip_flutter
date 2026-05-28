@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -512,8 +514,11 @@ class _HeroCard extends StatelessWidget {
                           size: 18),
                       iconSize: 18,
                       onPressed: () => launchUrl(
-                        Uri.parse(
-                            'geo:0,0?q=${Uri.encodeComponent(address)}'),
+                        Platform.isIOS
+                            ? Uri.parse(
+                                'https://maps.apple.com/?q=${Uri.encodeComponent(address)}')
+                            : Uri.parse(
+                                'geo:0,0?q=${Uri.encodeComponent(address)}'),
                         mode: LaunchMode.externalApplication,
                       ),
                     ),
@@ -1320,9 +1325,10 @@ class _PayExpensesSheetState extends ConsumerState<PayExpensesSheet> {
               ('Cash App', const Color(0xFF00C244), 'https://cash.app/'),
               ('Zelle', const Color(0xFF6D1ED4), 'https://www.zellepay.com/'),
             ],
-            [
-              ('GPay', Colors.black, 'https://pay.google.com/'),
-            ],
+            if (!Platform.isIOS)
+              [
+                ('GPay', Colors.black, 'https://pay.google.com/'),
+              ],
           ].map(
             (row) => Padding(
               padding: const EdgeInsets.only(bottom: 10),

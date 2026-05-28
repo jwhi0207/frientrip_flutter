@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +9,7 @@ import '../../models/ride_request.dart';
 import '../../models/trip_member.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/pickers.dart';
 const _vehicleEmojis = ['🚗', '🚐', '🛻', '🚌', '🏎️', '🚙'];
 
 class CarpoolScreen extends ConsumerStatefulWidget {
@@ -70,26 +74,46 @@ class _CarpoolScreenState extends ConsumerState<CarpoolScreen> {
   }
 
   void _confirmDelete(Ride ride) {
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Remove Ride'),
+          content: Text('Remove ${ride.driverName}\'s ${ride.vehicleLabel}?'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                ref.read(tripRepositoryProvider).deleteRide(widget.tripId, ride.id);
+                Navigator.pop(ctx);
+              },
+              child: const Text('Remove'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove Ride'),
-        content:
-            Text('Remove ${ride.driverName}\'s ${ride.vehicleLabel}?'),
+        content: Text('Remove ${ride.driverName}\'s ${ride.vehicleLabel}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel')),
           TextButton(
             onPressed: () {
-              ref
-                  .read(tripRepositoryProvider)
-                  .deleteRide(widget.tripId, ride.id);
+              ref.read(tripRepositoryProvider).deleteRide(widget.tripId, ride.id);
               Navigator.pop(ctx);
             },
             child: Text('Remove',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.error)),
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -823,7 +847,7 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
   }
 
   Future<void> _pickDepDate() async {
-    final picked = await showDatePicker(
+    final picked = await showPlatformDatePicker(
       context: context,
       initialDate: _depMillis > 0
           ? DateTime.fromMillisecondsSinceEpoch(_depMillis)
@@ -831,7 +855,7 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _depMillis =
           _mergeDate(picked.millisecondsSinceEpoch, _depMillis));
     }
@@ -841,19 +865,18 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
     final initial = _depMillis > 0
         ? DateTime.fromMillisecondsSinceEpoch(_depMillis)
         : DateTime.now();
-    final picked = await showTimePicker(
+    final picked = await showPlatformTimePicker(
       context: context,
-      initialTime:
-          TimeOfDay(hour: initial.hour, minute: initial.minute),
+      initialTime: TimeOfDay(hour: initial.hour, minute: initial.minute),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _depMillis =
           _mergeTime(_depMillis, picked.hour, picked.minute));
     }
   }
 
   Future<void> _pickRetDate() async {
-    final picked = await showDatePicker(
+    final picked = await showPlatformDatePicker(
       context: context,
       initialDate: _retMillis > 0
           ? DateTime.fromMillisecondsSinceEpoch(_retMillis)
@@ -861,7 +884,7 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _retMillis =
           _mergeDate(picked.millisecondsSinceEpoch, _retMillis));
     }
@@ -871,12 +894,11 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
     final initial = _retMillis > 0
         ? DateTime.fromMillisecondsSinceEpoch(_retMillis)
         : DateTime.now();
-    final picked = await showTimePicker(
+    final picked = await showPlatformTimePicker(
       context: context,
-      initialTime:
-          TimeOfDay(hour: initial.hour, minute: initial.minute),
+      initialTime: TimeOfDay(hour: initial.hour, minute: initial.minute),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _retMillis =
           _mergeTime(_retMillis, picked.hour, picked.minute));
     }

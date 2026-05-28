@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../utils/pickers.dart';
 
 class CreateTripSheet extends ConsumerStatefulWidget {
   const CreateTripSheet({super.key});
@@ -54,7 +55,7 @@ class _CreateTripSheetState extends ConsumerState<CreateTripSheet> {
     final initial = current > 0
         ? DateTime.fromMillisecondsSinceEpoch(current)
         : DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await showPlatformDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2020),
