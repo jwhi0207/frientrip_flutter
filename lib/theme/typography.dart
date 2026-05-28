@@ -1,0 +1,88 @@
+import 'package:flutter/material.dart';
+
+final kAppTypography = Typography.material2021().englishLike.copyWith(
+  displaySmall: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.normal,
+    fontSize: 36,
+    height: 44 / 36,
+    letterSpacing: 0,
+  ),
+  headlineMedium: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w600,
+    fontSize: 28,
+    height: 36 / 28,
+    letterSpacing: 0,
+  ),
+  headlineSmall: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w600,
+    fontSize: 24,
+    height: 32 / 24,
+    letterSpacing: 0,
+  ),
+  titleLarge: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w600,
+    fontSize: 20,
+    height: 28 / 20,
+    letterSpacing: 0,
+  ),
+  titleMedium: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w500,
+    fontSize: 16,
+    height: 24 / 16,
+    letterSpacing: 0.15,
+  ),
+  titleSmall: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w500,
+    fontSize: 14,
+    height: 20 / 14,
+    letterSpacing: 0.1,
+  ),
+  bodyLarge: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.normal,
+    fontSize: 16,
+    height: 24 / 16,
+    letterSpacing: 0.5,
+  ),
+  bodyMedium: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.normal,
+    fontSize: 14,
+    height: 20 / 14,
+    letterSpacing: 0.25,
+  ),
+  bodySmall: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.normal,
+    fontSize: 12,
+    height: 16 / 12,
+    letterSpacing: 0.4,
+  ),
+  labelLarge: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w500,
+    fontSize: 14,
+    height: 20 / 14,
+    letterSpacing: 0.1,
+  ),
+  labelMedium: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w500,
+    fontSize: 12,
+    height: 16 / 12,
+    letterSpacing: 0.5,
+  ),
+  labelSmall: const TextStyle(
+    fontFamily: 'Roboto',
+    fontWeight: FontWeight.w500,
+    fontSize: 11,
+    height: 16 / 11,
+    letterSpacing: 0.5,
+  ),
+);

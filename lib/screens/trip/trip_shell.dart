@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/trip_provider.dart';
+import '../../widgets/avatar_widget.dart';
 
 class TripShell extends ConsumerWidget {
   final Widget child;
@@ -51,18 +53,18 @@ class TripShell extends ConsumerWidget {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map),
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bed_outlined),
-            selectedIcon: Icon(Icons.bed),
+            icon: Icon(Icons.hotel_outlined),
+            selectedIcon: Icon(Icons.hotel),
             label: 'Lodging',
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
+            icon: Icon(Icons.checklist_outlined),
+            selectedIcon: Icon(Icons.checklist),
             label: 'Supplies',
           ),
           NavigationDestination(
@@ -81,14 +83,52 @@ class TripShell extends ConsumerWidget {
   }
 }
 
-class _TripDrawer extends StatelessWidget {
+class _TripDrawer extends ConsumerWidget {
   final String tripId;
   final bool isAdmin;
   const _TripDrawer({required this.tripId, required this.isAdmin});
 
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.delete,
+            color: Theme.of(ctx).colorScheme.error),
+        title: const Text('Delete Trip?'),
+        content: const Text(
+            'This will permanently delete this trip and all its data for everyone. This cannot be undone.'),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await ref
+                  .read(tripRepositoryProvider)
+                  .deleteTrip(tripId);
+              if (context.mounted) context.go('/trips');
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final uid = ref.watch(currentUidProvider);
+    final trip = ref.watch(tripStreamProvider(tripId)).valueOrNull;
+    final members =
+        ref.watch(tripMembersProvider(tripId)).valueOrNull ?? [];
+    final currentMember =
+        members.where((m) => m.uid == uid).firstOrNull;
 
     void nav(void Function() go) {
       Navigator.of(context).pop();
@@ -100,35 +140,62 @@ class _TripDrawer extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-              ),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Text(
-                  'Frientrip',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
+            // ── Header ────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () => nav(() => context.push('/profile')),
+                    child: currentMember != null
+                        ? AvatarWidget(
+                            seed: currentMember.avatarSeed,
+                            colorIndex: currentMember.avatarColor,
+                            size: 56,
+                          )
+                        : CircleAvatar(
+                            radius: 28,
+                            backgroundColor: cs.primaryContainer,
+                            child: Icon(Icons.person,
+                                color: cs.onPrimaryContainer, size: 28),
+                          ),
                   ),
-                ),
+                  if (currentMember != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      currentMember.displayName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                  if (trip?.name != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      trip!.name,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ],
               ),
             ),
+            const Divider(height: 24),
+
+            // ── Navigation items ──────────────────────────────────────
             ListTile(
               leading: const Icon(Icons.arrow_back),
               title: const Text('Change Trips'),
               onTap: () => nav(() => context.go('/trips')),
             ),
             ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Profile'),
-              onTap: () => nav(() => context.push('/profile')),
+              leading: const Icon(Icons.campaign),
+              title: const Text('Trip Announcements'),
+              onTap: () => Navigator.of(context).pop(),
             ),
             if (isAdmin) ...[
-              const Divider(indent: 16, endIndent: 16),
               ListTile(
-                leading: const Icon(Icons.manage_accounts_outlined),
+                leading: const Icon(Icons.manage_accounts),
                 title: const Text('Manage Group'),
                 onTap: () =>
                     nav(() => context.push('/trips/$tripId/manage')),
@@ -140,6 +207,29 @@ class _TripDrawer extends StatelessWidget {
                     nav(() => context.push('/trips/$tripId/history')),
               ),
             ],
+
+            // ── Bottom section ────────────────────────────────────────
+            const Spacer(),
+            const Divider(),
+            if (isAdmin)
+              ListTile(
+                leading: Icon(Icons.delete, color: cs.error),
+                title: Text('Delete Trip',
+                    style: TextStyle(color: cs.error)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmDelete(context, ref);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Sign Out'),
+              onTap: () {
+                Navigator.of(context).pop();
+                FirebaseAuth.instance.signOut();
+              },
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

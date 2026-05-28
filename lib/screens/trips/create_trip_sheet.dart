@@ -244,7 +244,7 @@ class _CreateTripSheetState extends ConsumerState<CreateTripSheet> {
                       decoration: const InputDecoration(
                         labelText: 'Location',
                         border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_on_outlined),
+                        prefixIcon: Icon(Icons.location_on),
                       ),
                     ),
                     const SizedBox(height: 16),

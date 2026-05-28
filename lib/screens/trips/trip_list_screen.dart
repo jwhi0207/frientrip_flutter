@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +9,7 @@ import '../../providers/trip_provider.dart';
 import '../../providers/user_provider.dart';
 import 'create_trip_sheet.dart';
 import 'join_trip_dialog.dart';
+import '../../widgets/vivid_card.dart';
 
 enum _TripFilter { upcoming, past }
 
@@ -81,7 +81,7 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Frientrip'),
+        title: const Text('My Trips'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -92,14 +92,9 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.link),
+            icon: const Icon(Icons.group_add),
             tooltip: 'Join with code',
             onPressed: _showJoinDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),
@@ -151,7 +146,7 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
           itemCount: filtered.length,
           itemBuilder: (_, i) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _TripCard(trip: filtered[i]),
+            child: _TripCard(trip: filtered[i], accentIndex: i),
           ),
         );
       },
@@ -180,6 +175,7 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
               child: _InviteCard(
                 trip: trip,
                 loading: loading,
+                accentIndex: i,
                 onAccept: loading ? null : () => _acceptInvite(trip.id),
               ),
             );
@@ -218,7 +214,8 @@ class _TripListScreenState extends ConsumerState<TripListScreen>
 
 class _TripCard extends StatelessWidget {
   final Trip trip;
-  const _TripCard({required this.trip});
+  final int accentIndex;
+  const _TripCard({required this.trip, required this.accentIndex});
 
   String _dateRange() {
     if (trip.checkInMillis == 0) return 'Dates TBD';
@@ -237,16 +234,16 @@ class _TripCard extends StatelessWidget {
     final hasThumb =
         trip.thumbnailURL != null && trip.thumbnailURL!.isNotEmpty;
     final costStr = trip.totalCost > 0
-        ? NumberFormat.currency(symbol: '\$', decimalDigits: 0)
+        ? NumberFormat.currency(symbol: '\$', decimalDigits: 2)
             .format(trip.totalCost)
         : '';
 
-    return Card(
+    return VividCard(
+      accentIndex: accentIndex,
       clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      child: InkWell(
-        onTap: () => context.go('/trips/${trip.id}/dashboard'),
-        child: SizedBox(
+      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      onTap: () => context.go('/trips/${trip.id}/dashboard'),
+      child: SizedBox(
         height: 180,
         child: Stack(
           fit: StackFit.expand,
@@ -339,7 +336,6 @@ class _TripCard extends StatelessWidget {
             ),
           ],
         ),
-        ),
       ),
     );
   }
@@ -384,17 +380,19 @@ class _TripCard extends StatelessWidget {
 class _InviteCard extends StatelessWidget {
   final Trip trip;
   final bool loading;
+  final int accentIndex;
   final VoidCallback? onAccept;
 
   const _InviteCard(
-      {required this.trip, required this.loading, this.onAccept});
+      {required this.trip, required this.loading, required this.accentIndex, this.onAccept});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final count = trip.memberIds.length;
 
-    return Card(
+    return VividCard(
+      accentIndex: accentIndex,
       child: Padding(
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -13,6 +13,8 @@ import '../../providers/trip_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/cost_calculator.dart';
 import '../../widgets/avatar_widget.dart';
+import '../../widgets/vivid_card.dart';
+import '../../theme/colors.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   final String tripId;
@@ -125,13 +127,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Expanded(
                         child: _FeatureCard(
-                          icon: Icons.shopping_bag_outlined,
+                          icon: Icons.shopping_bag,
                           badge: unclaimed > 0 ? '$unclaimed New' : null,
                           title: 'Supplies',
                           subtitle: supplies.isEmpty
                               ? 'No items yet'
                               : '${supplies.length} items total',
-                          accentColor: Theme.of(context).colorScheme.tertiary,
+                          accentIndex: 1,
                           onTap: () =>
                               context.go('/trips/${widget.tripId}/supplies'),
                         ),
@@ -139,7 +141,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _FeatureCard(
-                          icon: Icons.directions_car_outlined,
+                          icon: Icons.directions_car,
                           badge: rideRequests.isNotEmpty
                               ? '${rideRequests.length} Need Ride'
                               : availRides > 0
@@ -149,7 +151,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           title: 'Carpool',
                           subtitle:
                               rides.isEmpty ? 'No rides yet' : 'Rides active',
-                          accentColor: Theme.of(context).colorScheme.secondary,
+                          accentIndex: 2,
                           onTap: () =>
                               context.go('/trips/${widget.tripId}/carpool'),
                         ),
@@ -158,76 +160,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 12),
                   // Expenses full-width card
-                  Card(
-                    elevation: 1,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () =>
-                          context.push('/trips/${widget.tripId}/expenses'),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(Icons.account_balance_wallet_outlined,
-                                  color:
-                                      Theme.of(context).colorScheme.primary,
-                                  size: 20),
+                  VividCard(
+                    accentIndex: 3,
+                    onTap: () => context.push('/trips/${widget.tripId}/expenses'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Expenses',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.w600)),
-                                  if (isAdmin && pendingExpenseCount > 0)
-                                    _StatusChip(
-                                        label:
-                                            '$pendingExpenseCount Pending',
-                                        color: Colors.orange.shade700,
-                                        bg: Colors.orange.shade50)
-                                  else
-                                    Text(
-                                      expenses.isEmpty
-                                          ? 'No expenses yet'
-                                          : '${expenses.length} expenses',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.6)),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              currency.format(approvedTotal),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary,
+                            child: Icon(Icons.account_balance_wallet,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 20),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Expenses',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600)),
+                                if (isAdmin && pendingExpenseCount > 0)
+                                  _StatusChip(
+                                      label: '$pendingExpenseCount Pending',
+                                      color: Colors.orange.shade700,
+                                      bg: Colors.orange.shade50)
+                                else
+                                  Text(
+                                    expenses.isEmpty
+                                        ? 'No expenses yet'
+                                        : '${expenses.length} expenses',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.6)),
                                   ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          Text(
+                            currency.format(approvedTotal),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -294,8 +287,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             else
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Card(
-                  elevation: 1,
+                child: VividCard(
+                  accentIndex: 4,
                   child: Column(
                     children: [
                       for (int i = 0; i < activeMembers.length; i++) ...[
@@ -365,112 +358,154 @@ class _HeroCard extends StatelessWidget {
     final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
     final fmt = DateFormat('MMM d');
 
-    return Card(
+    return VividCard(
+      accentIndex: 0,
       clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          children: [
-            SizedBox(
-              height: 200,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (hasThumb)
-                    CachedNetworkImage(
-                      imageUrl: trip!.thumbnailURL as String,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _placeholder(context),
-                    )
-                  else
-                    _placeholder(context),
-                  // scrim
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.75),
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 200,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (hasThumb)
+                  CachedNetworkImage(
+                    imageUrl: trip!.thumbnailURL as String,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => _placeholder(context),
+                  )
+                else
+                  _placeholder(context),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.75),
+                      ],
+                      stops: const [0.35, 1.0],
+                    ),
+                  ),
+                ),
+                if (totalCost > 0)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.72),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            currency.format(totalCost),
+                            style: const TextStyle(
+                              color: kElectricCyan,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Total Stay',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 10),
+                          ),
                         ],
-                        stops: const [0.35, 1.0],
                       ),
                     ),
                   ),
-                  // cost badge
-                  if (totalCost > 0)
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.72),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              currency.format(totalCost),
-                              style: const TextStyle(
-                                color: Color(0xFF00F5FF),
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Total Stay',
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 10),
-                            ),
-                          ],
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        houseURL.isNotEmpty ? 'Lodging' : 'Add Lodging Details',
+                        style: TextStyle(
+                          color: houseURL.isNotEmpty
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.7),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  // bottom content
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 12,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          houseURL.isNotEmpty ? 'Lodging' : 'Add Lodging Details',
-                          style: TextStyle(
-                            color: houseURL.isNotEmpty
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.7),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            if (checkIn > 0 && checkOut > 0) ...[
-                              _HeroChip(
-                                icon: Icons.calendar_month,
-                                label:
-                                    '${fmt.format(DateTime.fromMillisecondsSinceEpoch(checkIn))} – ${fmt.format(DateTime.fromMillisecondsSinceEpoch(checkOut))}',
-                              ),
-                              const SizedBox(width: 8),
-                            ],
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          if (checkIn > 0 && checkOut > 0) ...[
                             _HeroChip(
-                              icon: Icons.group,
+                              icon: Icons.calendar_month,
                               label:
-                                  '$guestCount ${guestCount == 1 ? 'Guest' : 'Guests'}',
+                                  '${fmt.format(DateTime.fromMillisecondsSinceEpoch(checkIn))} – ${fmt.format(DateTime.fromMillisecondsSinceEpoch(checkOut))}',
                             ),
+                            const SizedBox(width: 8),
                           ],
-                        ),
-                      ],
+                          _HeroChip(
+                            icon: Icons.group,
+                            label:
+                                '$guestCount ${guestCount == 1 ? 'Guest' : 'Guests'}',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (address.isNotEmpty) ...[
+            Divider(
+                height: 1,
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.4)),
+            Container(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              padding:
+                  const EdgeInsets.only(left: 14, right: 4, top: 6, bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.location_on,
+                      color: Theme.of(context).colorScheme.primary, size: 15),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () =>
+                          Clipboard.setData(ClipboardData(text: address)),
+                      child: Text(
+                        address,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.navigation,
+                        color: Theme.of(context).colorScheme.primary, size: 18),
+                    iconSize: 18,
+                    onPressed: () => launchUrl(
+                      Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}'),
+                      mode: LaunchMode.externalApplication,
                     ),
                   ),
                 ],
@@ -527,7 +562,7 @@ class _HeroCard extends StatelessWidget {
               ),
             ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -580,7 +615,7 @@ class _FeatureCard extends StatelessWidget {
   final bool badgeIsWarning;
   final String title;
   final String subtitle;
-  final Color accentColor;
+  final int accentIndex;
   final VoidCallback onTap;
 
   const _FeatureCard({
@@ -589,7 +624,7 @@ class _FeatureCard extends StatelessWidget {
     this.badgeIsWarning = false,
     required this.title,
     required this.subtitle,
-    required this.accentColor,
+    required this.accentIndex,
     required this.onTap,
   });
 
@@ -597,11 +632,9 @@ class _FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      elevation: 1,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
+    return VividCard(
+      accentIndex: accentIndex,
+      onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -655,7 +688,6 @@ class _FeatureCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }
@@ -712,8 +744,8 @@ class _MemberRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Icon(Icons.nightlight_round,
-                        size: 13, color: const Color(0xFFB347EA)),
+                    const Icon(Icons.nightlight_round,
+                        size: 13, color: kNeonPurple),
                     const SizedBox(width: 3),
                     Text(
                       m.nightsStayed == 0
@@ -733,20 +765,13 @@ class _MemberRow extends StatelessWidget {
             children: [
               if (computedOwed > 0 && m.nightsStayed > 0)
                 isPaidUp
-                    ? _StatusChip(
-                        label: 'PAID UP',
-                        color: Colors.green.shade700,
-                        bg: Colors.green.shade50)
-                    : _StatusChip(
+                    ? const VividStatusBadge(label: 'PAID UP', status: VividStatus.paid)
+                    : VividStatusBadge(
                         label: '${currency.format(remaining)} DUE',
-                        color: Colors.red.shade700,
-                        bg: Colors.red.shade50),
+                        status: VividStatus.due),
               if (isAdmin && hasPending) ...[
                 const SizedBox(height: 4),
-                _StatusChip(
-                    label: 'REVIEW',
-                    color: Colors.orange.shade800,
-                    bg: Colors.orange.shade50),
+                const VividStatusBadge(label: 'REVIEW', status: VividStatus.pending),
               ],
             ],
           ),
@@ -797,7 +822,7 @@ class _MemberRow extends StatelessWidget {
                   const PopupMenuItem(
                       value: 'verify',
                       child: ListTile(
-                          leading: Icon(Icons.fact_check_outlined),
+                          leading: Icon(Icons.fact_check),
                           title: Text('Verify Payment'),
                           dense: true,
                           contentPadding: EdgeInsets.zero)),

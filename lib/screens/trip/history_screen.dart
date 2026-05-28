@@ -42,7 +42,7 @@ class HistoryScreen extends ConsumerWidget {
               children: [
                 if (expenses.isNotEmpty)
                   _SectionCard(
-                    icon: Icons.receipt_long,
+                    icon: Icons.attach_money,
                     iconColor: const Color(0xFF00838F),
                     iconBg: const Color(0xFFE0F7FA),
                     label: 'Expenses',
@@ -52,7 +52,7 @@ class HistoryScreen extends ConsumerWidget {
                   ),
                 if (supplies.isNotEmpty)
                   _SectionCard(
-                    icon: Icons.shopping_bag,
+                    icon: Icons.checklist,
                     iconColor: const Color(0xFF2E7D32),
                     iconBg: const Color(0xFFE8F5E9),
                     label: 'Supplies',

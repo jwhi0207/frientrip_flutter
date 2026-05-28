@@ -9,6 +9,7 @@ import '../../models/trip_member.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/vivid_card.dart';
 
 // â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -306,6 +307,7 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: _CategoryCard(
                   category: cat,
+                  accentIndex: _categories.indexOf(cat),
                   items: grouped[cat]!,
                   isCollapsed: _collapsed[cat] ?? true,
                   isAdmin: isAdmin,
@@ -325,6 +327,7 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
 
 class _CategoryCard extends StatelessWidget {
   final String category;
+  final int accentIndex;
   final List<SupplyItem> items;
   final bool isCollapsed;
   final bool isAdmin;
@@ -334,6 +337,7 @@ class _CategoryCard extends StatelessWidget {
 
   const _CategoryCard({
     required this.category,
+    required this.accentIndex,
     required this.items,
     required this.isCollapsed,
     required this.isAdmin,
@@ -348,9 +352,8 @@ class _CategoryCard extends StatelessWidget {
     final claimedCount = items.where((i) => i.isClaimed).length;
     final progress = items.isEmpty ? 0.0 : claimedCount / items.length;
 
-    return Card(
-      elevation: 1,
-      margin: EdgeInsets.zero,
+    return VividCard(
+      accentIndex: accentIndex,
       child: Column(
         children: [
           InkWell(
@@ -723,7 +726,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
           else
             OutlinedButton.icon(
               onPressed: widget.onBillToGroup,
-              icon: const Icon(Icons.receipt_outlined, size: 18),
+              icon: const Icon(Icons.receipt, size: 18),
               label: const Text('Bill to Group'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48),
