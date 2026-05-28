@@ -257,6 +257,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                   const Spacer(),
+                  if (isAdmin) ...[
+                    TextButton.icon(
+                      onPressed: () => ref
+                          .read(tripRepositoryProvider)
+                          .setNightsLocked(
+                              widget.tripId, !(trip?.nightsLocked ?? false)),
+                      icon: Icon(
+                        trip?.nightsLocked == true
+                            ? Icons.lock_open
+                            : Icons.lock,
+                        size: 16,
+                      ),
+                      label: Text(
+                          trip?.nightsLocked == true ? 'Unlock' : 'Lock'),
+                    ),
+                  ],
                   TextButton(
                     onPressed: () =>
                         context.go('/trips/${widget.tripId}/group'),
@@ -298,6 +314,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               memberCosts[activeMembers[i].uid] ?? 0.0,
                           isAdmin: isAdmin,
                           isCurrentUser: activeMembers[i].uid == uid,
+                          nightsLocked: trip?.nightsLocked ?? false,
                           onEditNights: () => _showEditNights(
                               activeMembers[i], trip?.totalNights ?? 0),
                           onAddPayment: () {
@@ -699,6 +716,7 @@ class _MemberRow extends StatelessWidget {
   final double computedOwed;
   final bool isAdmin;
   final bool isCurrentUser;
+  final bool nightsLocked;
   final VoidCallback onEditNights;
   final VoidCallback onAddPayment;
   final VoidCallback onPayExpenses;
@@ -709,6 +727,7 @@ class _MemberRow extends StatelessWidget {
     required this.computedOwed,
     required this.isAdmin,
     required this.isCurrentUser,
+    required this.nightsLocked,
     required this.onEditNights,
     required this.onAddPayment,
     required this.onPayExpenses,
@@ -722,7 +741,7 @@ class _MemberRow extends StatelessWidget {
     final remaining = computedOwed - m.amountPaid;
     final isPaidUp = remaining <= 0.0;
     final hasPending = m.pendingPaymentStatus == 'pending';
-    final canEditNights = isCurrentUser || isAdmin;
+    final canEditNights = (isCurrentUser || isAdmin) && (!nightsLocked || isAdmin);
     final canAddPayment = isAdmin;
     final canPayExpenses = isCurrentUser || isAdmin;
     final canVerifyPayment = isAdmin && hasPending;

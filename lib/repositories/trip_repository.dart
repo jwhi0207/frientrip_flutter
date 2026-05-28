@@ -486,6 +486,10 @@ class TripRepository {
         .update({'nightsStayed': nights});
   }
 
+  Future<void> setNightsLocked(String tripId, bool locked) async {
+    await _db.collection('trips').doc(tripId).update({'nightsLocked': locked});
+  }
+
   Future<void> submitPayment(
       String tripId, String uid, double amount, String memberName) async {
     await _db

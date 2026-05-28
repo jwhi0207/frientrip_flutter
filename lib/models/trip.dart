@@ -18,6 +18,7 @@ class Trip {
   final bool inviteCodeEnabled;
   final String description;
   final String emoji;
+  final bool nightsLocked;
 
   const Trip({
     required this.id,
@@ -37,6 +38,7 @@ class Trip {
     this.inviteCodeEnabled = true,
     this.description = '',
     this.emoji = '',
+    this.nightsLocked = false,
   });
 
   factory Trip.fromFirestore(DocumentSnapshot doc) {
@@ -59,6 +61,7 @@ class Trip {
       inviteCodeEnabled: d['inviteCodeEnabled'] as bool? ?? true,
       description: d['description'] as String? ?? '',
       emoji: d['emoji'] as String? ?? '',
+      nightsLocked: d['nightsLocked'] as bool? ?? false,
     );
   }
 }
