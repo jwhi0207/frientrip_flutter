@@ -1,0 +1,110 @@
+name: Deploy to Play Store
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > android/app/release.jks
+
+      - name: Create key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storeFile=release.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Create google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
+
+      - name: Create firebase_options.dart
+        run: echo "${{ secrets.FIREBASE_OPTIONS_DART }}" | base64 -d > lib/firebase_options.dart
+
+      - name: Build release AAB
+        run: flutter build appbundle --release --build-number=$((GITHUB_RUN_NUMBER + 100))
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: Install Google API client
+        run: pip install google-api-python-client google-auth
+
+      - name: Upload to Internal and Closed Testing
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          python3 - <<'EOF'
+          import glob
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+          import google.auth
+
+          PACKAGE_NAME = "com.bennybokki.frientrip"
+          TRACKS = ["internal", "alpha"]
+
+          credentials, _ = google.auth.default(
+              scopes=["https://www.googleapis.com/auth/androidpublisher"]
+          )
+          service = build("androidpublisher", "v3", credentials=credentials)
+
+          edit = service.edits().insert(packageName=PACKAGE_NAME, body={}).execute()
+          edit_id = edit["id"]
+
+          aab_path = glob.glob("build/app/outputs/bundle/release/*.aab")[0]
+          media = MediaFileUpload(aab_path, mimetype="application/octet-stream")
+          bundle = service.edits().bundles().upload(
+              packageName=PACKAGE_NAME,
+              editId=edit_id,
+              media_body=media
+          ).execute()
+
+          version_code = bundle["versionCode"]
+          print(f"Uploaded version code: {version_code}")
+
+          for track in TRACKS:
+              service.edits().tracks().update(
+                  packageName=PACKAGE_NAME,
+                  editId=edit_id,
+                  track=track,
+                  body={
+                      "track": track,
+                      "releases": [{"versionCodes": [version_code], "status": "completed"}]
+                  }
+              ).execute()
+              print(f"Assigned to {track}")
+
+          service.edits().commit(packageName=PACKAGE_NAME, editId=edit_id).execute()
+          print("Done")
+          EOF

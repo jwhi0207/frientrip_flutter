@@ -613,10 +613,13 @@ class TripRepository {
 
   Future<void> addGuestMember(
       String tripId, String displayName, String adminName) async {
-    final guestRef = _db.collection('trips').doc(tripId).collection('members').doc();
+    final tripRef = _db.collection('trips').doc(tripId);
+    final guestRef = tripRef.collection('members').doc();
+    final guestId = guestRef.id;
     final avatarSeed = DateTime.now().millisecondsSinceEpoch % 12 + 1;
-    await guestRef.set({
-      'uid': guestRef.id,
+    final batch = _db.batch();
+    batch.set(guestRef, {
+      'uid': guestId,
       'displayName': displayName,
       'email': '',
       'avatarSeed': avatarSeed,
@@ -628,12 +631,24 @@ class TripRepository {
       'status': 'active',
       'isGuest': true,
     });
+    // Include guest in memberIds so trip card member count is accurate.
+    // Guests cannot authenticate so this has no security impact.
+    batch.update(tripRef, {
+      'memberIds': FieldValue.arrayUnion([guestId]),
+    });
+    await batch.commit();
     await _logHistory(tripId, 'members', '$adminName added guest member $displayName');
   }
 
   Future<void> removeGuestMember(
       String tripId, String uid, String displayName, String adminName) async {
-    await _db.collection('trips').doc(tripId).collection('members').doc(uid).delete();
+    final tripRef = _db.collection('trips').doc(tripId);
+    final batch = _db.batch();
+    batch.delete(tripRef.collection('members').doc(uid));
+    batch.update(tripRef, {
+      'memberIds': FieldValue.arrayRemove([uid]),
+    });
+    await batch.commit();
     await _logHistory(tripId, 'members', '$adminName removed guest member $displayName');
   }
 

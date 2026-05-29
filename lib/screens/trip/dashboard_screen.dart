@@ -504,13 +504,10 @@ class _HeroCard extends StatelessWidget {
                           Clipboard.setData(ClipboardData(text: address)),
                       child: Text(
                         address,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -521,63 +518,17 @@ class _HeroCard extends StatelessWidget {
                         color: Theme.of(context).colorScheme.primary, size: 18),
                     iconSize: 18,
                     onPressed: () => launchUrl(
-                      Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}'),
+                      Platform.isIOS
+                          ? Uri.parse(
+                              'https://maps.apple.com/?q=${Uri.encodeComponent(address)}')
+                          : Uri.parse(
+                              'geo:0,0?q=${Uri.encodeComponent(address)}'),
                       mode: LaunchMode.externalApplication,
                     ),
                   ),
                 ],
               ),
             ),
-            if (address.isNotEmpty) ...[
-              Divider(
-                  height: 1,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.4)),
-              Container(
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                padding: const EdgeInsets.only(
-                    left: 14, right: 4, top: 6, bottom: 6),
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 15),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () =>
-                            Clipboard.setData(ClipboardData(text: address)),
-                        child: Text(
-                          address,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.navigation,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 18),
-                      iconSize: 18,
-                      onPressed: () => launchUrl(
-                        Platform.isIOS
-                            ? Uri.parse(
-                                'https://maps.apple.com/?q=${Uri.encodeComponent(address)}')
-                            : Uri.parse(
-                                'geo:0,0?q=${Uri.encodeComponent(address)}'),
-                        mode: LaunchMode.externalApplication,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ],
       ),

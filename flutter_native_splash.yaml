@@ -1,18 +1,19 @@
 flutter_native_splash:
-  # Light mode: white background with logo
-  color: "#ffffff"
+  # Brand teal fills the entire screen in both light and dark mode
+  color: "#00BBF9"
   image: assets/images/frientrip_logo.png
 
-  # Dark mode: brand dark surface with logo
-  color_dark: "#05070a"
+  color_dark: "#00BBF9"
   image_dark: assets/images/frientrip_logo.png
 
-  # Android 12+ uses the dedicated SplashScreen API.
+  # Android 12+ — icon circle blends seamlessly into the teal background
   android_12:
-    color: "#ffffff"
-    color_dark: "#05070a"
-    image: assets/images/frientrip_logo.png
-    image_dark: assets/images/frientrip_logo.png
+    color: "#00BBF9"
+    color_dark: "#00BBF9"
+    image: assets/images/ic_launcher_foreground.png
+    image_dark: assets/images/ic_launcher_foreground.png
+    icon_background_color: "#00BBF9"
+    icon_background_color_dark: "#00BBF9"
 
   android: true
   ios: true
