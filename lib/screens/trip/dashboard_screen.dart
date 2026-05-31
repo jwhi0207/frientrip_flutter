@@ -248,23 +248,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               )),
                     ),
                   ),
-                  if (isAdmin) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: Icon(Icons.edit,
-                          size: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.45)),
-                      tooltip: 'Rename trip',
-                      onPressed: () =>
-                          _showRenameDialog(trip?.name ?? ''),
-                      constraints: const BoxConstraints(
-                          minWidth: 32, minHeight: 32),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ],
                   const Spacer(),
                   if (isAdmin) ...[
                     IconButton(

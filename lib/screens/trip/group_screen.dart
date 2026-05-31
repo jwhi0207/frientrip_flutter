@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/vivid_card.dart';
@@ -49,12 +50,42 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
     final inviteCodeEnabled = trip?.inviteCodeEnabled ?? true;
     final ownerId = trip?.ownerId ?? '';
 
+    final currentMember = uid != null
+        ? allMembers.where((m) => m.uid == uid).firstOrNull
+        : null;
+
     final cs = Theme.of(context).colorScheme;
     final trimmedEmail = _emailCtrl.text.trim();
     final isValidEmail = _isValidEmail(trimmedEmail);
 
-    return ListView(
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+        title: const Text('Group Members'),
+        actions: [
+          if (currentMember != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: CircleAvatar(
+                radius: 17,
+                backgroundImage: NetworkImage(
+                  'https://api.dicebear.com/9.x/pixel-art/png'
+                  '?seed=${currentMember.avatarSeed}&size=128',
+                ),
+              ),
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(Icons.account_circle),
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(top: 8, bottom: 24),
       children: [
         // ── Invite Code (visible when enabled) ──────────────────────
         if (inviteCode != null && inviteCodeEnabled)
@@ -329,6 +360,7 @@ class _GroupScreenState extends ConsumerState<GroupScreen> {
             ),
           ),
       ],
+      ),
     );
   }
 }

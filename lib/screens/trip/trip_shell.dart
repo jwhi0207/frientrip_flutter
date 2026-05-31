@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/members_provider.dart' hide tripMembersProvider;
 import '../../providers/trip_provider.dart';
 import '../../widgets/avatar_widget.dart';
+import 'dashboard_screen.dart' show RenameTripDialog;
 
 class TripShell extends ConsumerWidget {
   final Widget child;
@@ -44,6 +45,21 @@ class TripShell extends ConsumerWidget {
         ),
         title: Text(tripName.isEmpty ? 'Trip' : tripName),
         actions: [
+          if (_activeTab(path) == 0 && isAdmin)
+            IconButton(
+              icon: Icon(Icons.edit,
+                  size: 18,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.55)),
+              tooltip: 'Rename trip',
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) =>
+                    RenameTripDialog(tripId: tripId, currentName: tripName),
+              ),
+            ),
           if (_activeTab(path) == 4)
             _MuteButton(tripId: tripId),
         ],
