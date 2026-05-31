@@ -1,0 +1,542 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../models/message.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/messages_provider.dart';
+import '../../providers/members_provider.dart';
+import '../../widgets/avatar_widget.dart';
+
+class MessagesScreen extends ConsumerStatefulWidget {
+  final String tripId;
+  const MessagesScreen({super.key, required this.tripId});
+
+  @override
+  ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends ConsumerState<MessagesScreen> {
+  final _controller = TextEditingController();
+  final _scrollController = ScrollController();
+  bool _sending = false;
+
+  // Edit mode state
+  String? _editingMessageId;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _startEditing(Message msg) {
+    setState(() {
+      _editingMessageId = msg.id;
+      _controller.text = msg.text;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _editingMessageId = null;
+      _controller.clear();
+    });
+  }
+
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    final repo = ref.read(messageRepositoryProvider);
+
+    // If editing an existing message
+    if (_editingMessageId != null) {
+      setState(() => _sending = true);
+      final msgId = _editingMessageId!;
+      _cancelEditing();
+      try {
+        await repo.editMessage(widget.tripId, msgId, text);
+      } finally {
+        if (mounted) setState(() => _sending = false);
+      }
+      return;
+    }
+
+    // Sending a new message
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+
+    final members =
+        ref.read(tripMembersProvider(widget.tripId)).valueOrNull ?? [];
+    final me = members.where((m) => m.uid == uid).firstOrNull;
+    if (me == null) return;
+
+    setState(() => _sending = true);
+    _controller.clear();
+
+    try {
+      await repo.sendMessage(
+        widget.tripId,
+        text: text,
+        senderUid: uid,
+        senderName: me.displayName,
+        senderAvatarSeed: me.avatarSeed,
+        senderAvatarColor: me.avatarColor,
+      );
+      _scrollToBottom();
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final uid = ref.watch(currentUidProvider);
+    final messagesAsync = ref.watch(messagesProvider(widget.tripId));
+
+    // Auto-scroll when new messages arrive
+    ref.listen(messagesProvider(widget.tripId), (prev, next) {
+      final prevLen = prev?.valueOrNull?.length ?? 0;
+      final nextLen = next.valueOrNull?.length ?? 0;
+      if (nextLen > prevLen) _scrollToBottom();
+    });
+
+    return Column(
+      children: [
+        // ── Message list ──────────────────────────────────────────────
+        Expanded(
+          child: messagesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error loading messages')),
+            data: (messages) {
+              if (messages.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chat_bubble_outline,
+                          size: 64, color: cs.onSurfaceVariant.withAlpha(80)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No messages yet',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                            color: cs.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Start the conversation!',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant.withAlpha(150)),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                controller: _scrollController,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final msg = messages[index];
+                  final isMe = msg.senderUid == uid;
+                  final showAvatar = index == 0 ||
+                      messages[index - 1].senderUid != msg.senderUid ||
+                      messages[index - 1].deleted;
+                  final showTimestamp = index == 0 ||
+                      _shouldShowTimestamp(
+                          messages[index - 1].createdAt, msg.createdAt);
+
+                  return _MessageBubble(
+                    message: msg,
+                    isMe: isMe,
+                    showAvatar: showAvatar,
+                    showTimestamp: showTimestamp,
+                    isEditing: _editingMessageId == msg.id,
+                    onEdit: isMe && !msg.deleted
+                        ? () => _startEditing(msg)
+                        : null,
+                    onDelete: isMe && !msg.deleted
+                        ? () => ref
+                            .read(messageRepositoryProvider)
+                            .deleteMessage(widget.tripId, msg.id)
+                        : null,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+
+        // ── Edit banner ───────────────────────────────────────────────
+        if (_editingMessageId != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer,
+              border: Border(
+                top: BorderSide(color: cs.outlineVariant, width: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.edit, size: 16, color: cs.onPrimaryContainer),
+                const SizedBox(width: 8),
+                Text('Editing message',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                        color: cs.onPrimaryContainer)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _cancelEditing,
+                  child: Icon(Icons.close, size: 18, color: cs.onPrimaryContainer),
+                ),
+              ],
+            ),
+          ),
+
+        // ── Input bar ─────────────────────────────────────────────────
+        Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(
+              top: BorderSide(color: cs.outlineVariant, width: 0.5),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.send,
+                      maxLines: 4,
+                      minLines: 1,
+                      onSubmitted: (_) => _send(),
+                      decoration: InputDecoration(
+                        hintText: _editingMessageId != null
+                            ? 'Edit message...'
+                            : 'Message...',
+                        filled: true,
+                        fillColor: cs.surfaceContainerHighest,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: _sending ? null : _send,
+                    icon: _sending
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _editingMessageId != null
+                                ? Icons.check
+                                : Icons.send,
+                            size: 20,
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _shouldShowTimestamp(DateTime? prev, DateTime? current) {
+    if (prev == null || current == null) return true;
+    return current.difference(prev).inMinutes > 15;
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final Message message;
+  final bool isMe;
+  final bool showAvatar;
+  final bool showTimestamp;
+  final bool isEditing;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  const _MessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.showAvatar,
+    required this.showTimestamp,
+    this.isEditing = false,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Timestamp separator
+        if (showTimestamp && message.createdAt != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: Text(
+                _formatTimestamp(message.createdAt!),
+                style: theme.textTheme.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant.withAlpha(150)),
+              ),
+            ),
+          ),
+
+        // Sender name (when avatar shown, for all users)
+        if (showAvatar && !message.deleted)
+          Padding(
+            padding: EdgeInsets.only(
+              left: isMe ? 0 : 44,
+              right: isMe ? 44 : 0,
+              bottom: 2,
+            ),
+            child: Align(
+              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+              child: Text(
+                message.senderName,
+                style: theme.textTheme.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+
+        // Bubble row
+        Padding(
+          padding: EdgeInsets.only(
+            top: showAvatar ? 4 : 1,
+            bottom: 1,
+            left: isMe ? 64 : 0,
+            right: isMe ? 0 : 64,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment:
+                isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              // Avatar (left side for others)
+              if (!isMe)
+                SizedBox(
+                  width: 36,
+                  child: showAvatar && !message.deleted
+                      ? AvatarWidget(
+                          seed: message.senderAvatarSeed,
+                          colorIndex: message.senderAvatarColor,
+                          size: 32,
+                        )
+                      : null,
+                ),
+
+              if (!isMe) const SizedBox(width: 8),
+
+              // Bubble
+              Flexible(
+                child: message.deleted
+                    ? _buildDeletedBubble(theme, cs)
+                    : _buildMessageBubble(context, theme, cs),
+              ),
+
+              // Avatar (right side for own messages)
+              if (isMe) const SizedBox(width: 8),
+              if (isMe)
+                SizedBox(
+                  width: 36,
+                  child: showAvatar && !message.deleted
+                      ? AvatarWidget(
+                          seed: message.senderAvatarSeed,
+                          colorIndex: message.senderAvatarColor,
+                          size: 32,
+                        )
+                      : null,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeletedBubble(ThemeData theme, ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withAlpha(100),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outlineVariant.withAlpha(80)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.block, size: 14, color: cs.onSurfaceVariant.withAlpha(120)),
+          const SizedBox(width: 6),
+          Text(
+            'Message deleted',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant.withAlpha(150),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(
+      BuildContext context, ThemeData theme, ColorScheme cs) {
+    return GestureDetector(
+      onLongPress: (onEdit != null || onDelete != null)
+          ? () => _showOptionsSheet(context)
+          : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isEditing
+              ? (isMe ? cs.primary.withAlpha(180) : cs.primaryContainer)
+              : (isMe ? cs.primary : cs.surfaceContainerHighest),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft:
+                Radius.circular(isMe ? 18 : (showAvatar ? 4 : 18)),
+            bottomRight:
+                Radius.circular(isMe ? (showAvatar ? 4 : 18) : 18),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                message.text,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isMe ? cs.onPrimary : cs.onSurface,
+                ),
+              ),
+            ),
+            if (message.edited)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'edited',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    color: (isMe ? cs.onPrimary : cs.onSurfaceVariant)
+                        .withAlpha(150),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOptionsSheet(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onEdit != null)
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  onEdit!();
+                },
+              ),
+            if (onDelete != null)
+              ListTile(
+                leading: Icon(Icons.delete, color: cs.error),
+                title: Text('Delete', style: TextStyle(color: cs.error)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showDeleteDialog(context);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete message?'),
+        content: const Text(
+            'This message will be replaced with "Message deleted" for everyone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              onDelete?.call();
+            },
+            child: Text('Delete',
+                style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTimestamp(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+
+    if (diff.inDays == 0) {
+      return DateFormat.jm().format(dt);
+    } else if (diff.inDays == 1) {
+      return 'Yesterday ${DateFormat.jm().format(dt)}';
+    } else if (diff.inDays < 7) {
+      return DateFormat('EEEE').add_jm().format(dt);
+    } else {
+      return DateFormat.yMMMd().add_jm().format(dt);
+    }
+  }
+}

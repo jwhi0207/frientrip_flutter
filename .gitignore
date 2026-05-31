@@ -53,3 +53,7 @@ CLAUDE.md
 # Release signing
 android/key.properties
 *.jks
+
+# Cloud Functions build output
+functions/lib/
+functions/node_modules/

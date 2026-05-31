@@ -76,6 +76,18 @@ class UserRepository {
     await batch.commit();
   }
 
+  Future<void> addFcmToken(String uid, String token) async {
+    await _db.collection('users').doc(uid).update({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+    });
+  }
+
+  Future<void> removeFcmToken(String uid, String token) async {
+    await _db.collection('users').doc(uid).update({
+      'fcmTokens': FieldValue.arrayRemove([token]),
+    });
+  }
+
   Future<void> checkAndAcceptPendingInvites(String uid, String email) async {
     final profile = await getUserProfile(uid);
     if (profile == null) return;

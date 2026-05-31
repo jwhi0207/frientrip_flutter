@@ -12,6 +12,7 @@ class TripMember {
   final String pendingPaymentStatus;
   final String status;
   final bool isGuest;
+  final bool mutedMessages;
 
   const TripMember({
     required this.uid,
@@ -25,6 +26,7 @@ class TripMember {
     this.pendingPaymentStatus = 'none',
     this.status = 'active',
     this.isGuest = false,
+    this.mutedMessages = false,
   });
 
   bool get isDeactivated => status == 'deactivated';
@@ -43,6 +45,7 @@ class TripMember {
       pendingPaymentStatus: d['pendingPaymentStatus'] as String? ?? 'none',
       status: d['status'] as String? ?? 'active',
       isGuest: d['isGuest'] as bool? ?? false,
+      mutedMessages: d['mutedMessages'] as bool? ?? false,
     );
   }
 
@@ -58,6 +61,7 @@ class TripMember {
     'pendingPaymentStatus': pendingPaymentStatus,
     'status': status,
     'isGuest': isGuest,
+    'mutedMessages': mutedMessages,
   };
 
   TripMember copyWith({
@@ -70,6 +74,7 @@ class TripMember {
     String? pendingPaymentStatus,
     String? status,
     bool? isGuest,
+    bool? mutedMessages,
   }) => TripMember(
     uid: uid,
     displayName: displayName ?? this.displayName,
@@ -82,5 +87,6 @@ class TripMember {
     pendingPaymentStatus: pendingPaymentStatus ?? this.pendingPaymentStatus,
     status: status ?? this.status,
     isGuest: isGuest ?? this.isGuest,
+    mutedMessages: mutedMessages ?? this.mutedMessages,
   );
 }

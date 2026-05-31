@@ -10,6 +10,7 @@ import 'screens/trip/lodging_screen.dart';
 import 'screens/trip/supplies_screen.dart';
 import 'screens/trip/carpool_screen.dart';
 import 'screens/trip/group_screen.dart';
+import 'screens/trip/messages_screen.dart';
 import 'screens/trip/expenses_screen.dart';
 import 'screens/trip/manage_screen.dart';
 import 'screens/trip/history_screen.dart';
@@ -60,11 +61,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                 CarpoolScreen(tripId: s.pathParameters['tripId']!),
           ),
           GoRoute(
-            path: '/trips/:tripId/group',
+            path: '/trips/:tripId/messages',
             builder: (_, s) =>
-                GroupScreen(tripId: s.pathParameters['tripId']!),
+                MessagesScreen(tripId: s.pathParameters['tripId']!),
           ),
         ],
+      ),
+
+      // Group screen (pushed from dashboard, no longer a tab)
+      GoRoute(
+        path: '/trips/:tripId/group',
+        builder: (_, s) =>
+            GroupScreen(tripId: s.pathParameters['tripId']!),
       ),
 
       // Pushed routes (full-screen, no shell)

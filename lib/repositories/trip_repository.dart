@@ -700,6 +700,15 @@ class TripRepository {
     await batch.commit();
   }
 
+  Future<void> toggleMuteMessages(String tripId, String uid, bool muted) async {
+    await _db
+        .collection('trips')
+        .doc(tripId)
+        .collection('members')
+        .doc(uid)
+        .update({'mutedMessages': muted});
+  }
+
   Future<void> deleteTrip(String tripId) async {
     await _db.collection('trips').doc(tripId).delete();
   }

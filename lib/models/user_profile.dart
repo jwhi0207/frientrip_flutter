@@ -7,6 +7,7 @@ class UserProfile {
   final int avatarSeed;
   final int avatarColor;
   final String role;
+  final List<String> fcmTokens;
 
   const UserProfile({
     required this.uid,
@@ -15,6 +16,7 @@ class UserProfile {
     this.avatarSeed = 0,
     this.avatarColor = 0,
     this.role = 'user',
+    this.fcmTokens = const [],
   });
 
   bool get isAdmin => role == 'admin';
@@ -28,6 +30,7 @@ class UserProfile {
       avatarSeed: (d['avatarSeed'] as num?)?.toInt() ?? 0,
       avatarColor: (d['avatarColor'] as num?)?.toInt() ?? 0,
       role: d['role'] as String? ?? 'user',
+      fcmTokens: List<String>.from(d['fcmTokens'] as List? ?? []),
     );
   }
 
@@ -38,5 +41,6 @@ class UserProfile {
     'avatarSeed': avatarSeed,
     'avatarColor': avatarColor,
     'role': role,
+    'fcmTokens': fcmTokens,
   };
 }

@@ -234,11 +234,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Text('Group Members',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => context.push('/trips/${widget.tripId}/group'),
+                      child: Text('Group Members',
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.primary,
+                              )),
+                    ),
+                  ),
                   if (isAdmin) ...[
                     const SizedBox(width: 4),
                     IconButton(
@@ -258,7 +267,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                   const Spacer(),
                   if (isAdmin) ...[
-                    TextButton.icon(
+                    IconButton(
                       onPressed: () => ref
                           .read(tripRepositoryProvider)
                           .setNightsLocked(
@@ -267,17 +276,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         trip?.nightsLocked == true
                             ? Icons.lock_open
                             : Icons.lock,
-                        size: 16,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                      label: Text(
-                          trip?.nightsLocked == true ? 'Unlock' : 'Lock'),
+                      tooltip: trip?.nightsLocked == true ? 'Unlock nights' : 'Lock nights',
+                      constraints: const BoxConstraints(
+                          minWidth: 36, minHeight: 36),
+                      padding: EdgeInsets.zero,
                     ),
                   ],
-                  TextButton(
-                    onPressed: () =>
-                        context.go('/trips/${widget.tripId}/group'),
-                    child: const Text('View All'),
-                  ),
                 ],
               ),
             ),
