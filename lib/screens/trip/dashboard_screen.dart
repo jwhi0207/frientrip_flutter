@@ -234,31 +234,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Text('Group Members',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  if (isAdmin) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: Icon(Icons.edit,
-                          size: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.45)),
-                      tooltip: 'Rename trip',
-                      onPressed: () =>
-                          _showRenameDialog(trip?.name ?? ''),
-                      constraints: const BoxConstraints(
-                          minWidth: 32, minHeight: 32),
-                      padding: EdgeInsets.zero,
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => context.push('/trips/${widget.tripId}/group'),
+                      child: Text('Group Members',
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.primary,
+                              )),
                     ),
-                  ],
+                  ),
                   const Spacer(),
                   if (isAdmin) ...[
-                    TextButton.icon(
+                    IconButton(
                       onPressed: () => ref
                           .read(tripRepositoryProvider)
                           .setNightsLocked(
@@ -267,17 +259,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         trip?.nightsLocked == true
                             ? Icons.lock_open
                             : Icons.lock,
-                        size: 16,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                      label: Text(
-                          trip?.nightsLocked == true ? 'Unlock' : 'Lock'),
+                      tooltip: trip?.nightsLocked == true ? 'Unlock nights' : 'Lock nights',
+                      constraints: const BoxConstraints(
+                          minWidth: 36, minHeight: 36),
+                      padding: EdgeInsets.zero,
                     ),
                   ],
-                  TextButton(
-                    onPressed: () =>
-                        context.go('/trips/${widget.tripId}/group'),
-                    child: const Text('View All'),
-                  ),
                 ],
               ),
             ),

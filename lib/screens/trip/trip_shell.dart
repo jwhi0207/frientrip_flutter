@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/members_provider.dart' hide tripMembersProvider;
 import '../../providers/trip_provider.dart';
 import '../../widgets/avatar_widget.dart';
+import 'dashboard_screen.dart' show RenameTripDialog;
 
 class TripShell extends ConsumerWidget {
   final Widget child;
@@ -20,7 +22,7 @@ class TripShell extends ConsumerWidget {
     if (path.contains('/lodging')) return 1;
     if (path.contains('/supplies')) return 2;
     if (path.contains('/carpool')) return 3;
-    if (path.contains('/group')) return 4;
+    if (path.contains('/messages')) return 4;
     return 0;
   }
 
@@ -42,13 +44,32 @@ class TripShell extends ConsumerWidget {
           ),
         ),
         title: Text(tripName.isEmpty ? 'Trip' : tripName),
+        actions: [
+          if (_activeTab(path) == 0 && isAdmin)
+            IconButton(
+              icon: Icon(Icons.edit,
+                  size: 18,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.55)),
+              tooltip: 'Rename trip',
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) =>
+                    RenameTripDialog(tripId: tripId, currentName: tripName),
+              ),
+            ),
+          if (_activeTab(path) == 4)
+            _MuteButton(tripId: tripId),
+        ],
       ),
       drawer: _TripDrawer(tripId: tripId, isAdmin: isAdmin),
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _activeTab(path),
         onDestinationSelected: (i) {
-          const tabs = ['dashboard', 'lodging', 'supplies', 'carpool', 'group'];
+          const tabs = ['dashboard', 'lodging', 'supplies', 'carpool', 'messages'];
           context.go('/trips/$tripId/${tabs[i]}');
         },
         destinations: const [
@@ -73,12 +94,42 @@ class TripShell extends ConsumerWidget {
             label: 'Carpool',
           ),
           NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Group',
+            icon: Icon(Icons.chat_bubble_outline),
+            selectedIcon: Icon(Icons.chat_bubble),
+            label: 'Messages',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MuteButton extends ConsumerWidget {
+  final String tripId;
+  const _MuteButton({required this.tripId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(currentUidProvider);
+    if (uid == null) return const SizedBox.shrink();
+
+    final member = ref.watch(currentUserMemberProvider(tripId));
+    final isMuted = member?.mutedMessages ?? false;
+
+    return IconButton(
+      icon: Icon(isMuted ? Icons.notifications_off : Icons.notifications_active),
+      tooltip: isMuted ? 'Unmute notifications' : 'Mute notifications',
+      onPressed: () {
+        ref.read(tripRepositoryProvider).toggleMuteMessages(tripId, uid, !isMuted);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isMuted
+                ? 'Notifications unmuted for this trip'
+                : 'Notifications muted for this trip'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
     );
   }
 }
