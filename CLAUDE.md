@@ -90,9 +90,11 @@ GoRouter with `StatefulShellRoute.indexedStack` for the 5-tab trip shell:
 - ✅ Trip message board with edit/delete, real-time chat-style UI
 - ✅ Push notifications: Cloud Function deployed, FCM client wired up, per-trip mute (bell icon)
 - ✅ Push notifications working on Android
-- ⏳ Apple Developer Program enrollment pending — blocks TestFlight and iOS push notifications
-- ⏳ iOS push notifications: need APNs key upload + Xcode Push Notifications capability + Background Modes (Step 5 of push notification plan)
-- ⏳ TestFlight: need Team ID → Xcode signing → App Store Connect app → build & upload
+- ✅ Apple Developer Program enrolled (Team ID: BMTU4V8N53)
+- ✅ iOS push notifications: APNs key uploaded to Firebase, entitlements + background modes configured
+- ✅ TestFlight: first build uploaded to App Store Connect (v1.0.0, build 1)
+- ✅ iOS distribution signing: Apple Distribution certificate + App Store provisioning profile
+- ⏳ Google Play Store: awaiting approval before merging to main
 - ⏳ iOS: not yet tested on a physical device
 
 ## Cloud Functions

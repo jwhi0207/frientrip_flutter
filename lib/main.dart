@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -81,23 +82,28 @@ class _FrientrippAppState extends ConsumerState<FrientrippApp> {
     // Save/remove token when auth state changes
     ref.listenManual(currentUidProvider, (prev, next) async {
       final token = await FirebaseMessaging.instance.getToken();
+      developer.log('FCM token: ${token ?? "null"}', name: 'FCM');
       if (token == null) return;
       _currentToken = token;
 
       final userRepo = ref.read(userRepositoryProvider);
 
-      // Remove from old user on sign-out
       if (prev != null && prev != next) {
         try {
           await userRepo.removeFcmToken(prev, token);
-        } catch (_) {}
+          developer.log('Removed FCM token from user $prev', name: 'FCM');
+        } catch (e) {
+          developer.log('Failed to remove FCM token: $e', name: 'FCM');
+        }
       }
 
-      // Add to new user on sign-in
       if (next != null) {
         try {
           await userRepo.addFcmToken(next, token);
-        } catch (_) {}
+          developer.log('Saved FCM token for user $next', name: 'FCM');
+        } catch (e) {
+          developer.log('Failed to save FCM token: $e', name: 'FCM');
+        }
       }
     });
 
@@ -109,18 +115,21 @@ class _FrientrippAppState extends ConsumerState<FrientrippApp> {
 
       final userRepo = ref.read(userRepositoryProvider);
 
-      // Remove old token if we had one
       if (_currentToken != null && _currentToken != newToken) {
         try {
           await userRepo.removeFcmToken(uid, _currentToken!);
-        } catch (_) {}
+        } catch (e) {
+          developer.log('Failed to remove old FCM token: $e', name: 'FCM');
+        }
       }
 
-      // Save new token
       _currentToken = newToken;
       try {
         await userRepo.addFcmToken(uid, newToken);
-      } catch (_) {}
+        developer.log('Saved refreshed FCM token for user $uid', name: 'FCM');
+      } catch (e) {
+        developer.log('Failed to save refreshed FCM token: $e', name: 'FCM');
+      }
     });
   }
 
