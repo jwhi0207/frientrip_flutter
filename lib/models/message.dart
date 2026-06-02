@@ -10,6 +10,7 @@ class Message {
   final DateTime? createdAt;
   final bool deleted;
   final bool edited;
+  final bool isAnnouncement;
 
   const Message({
     required this.id,
@@ -21,6 +22,7 @@ class Message {
     this.createdAt,
     this.deleted = false,
     this.edited = false,
+    this.isAnnouncement = false,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -35,6 +37,7 @@ class Message {
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       deleted: d['deleted'] as bool? ?? false,
       edited: d['edited'] as bool? ?? false,
+      isAnnouncement: d['isAnnouncement'] as bool? ?? false,
     );
   }
 
@@ -47,5 +50,6 @@ class Message {
         'createdAt': FieldValue.serverTimestamp(),
         'deleted': false,
         'edited': false,
+        'isAnnouncement': isAnnouncement,
       };
 }

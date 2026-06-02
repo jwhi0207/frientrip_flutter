@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/trip_member.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/members_provider.dart' hide tripMembersProvider;
 import '../../providers/trip_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/cost_calculator.dart';
@@ -77,6 +79,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final rideRequestsAsync = ref.watch(tripRideRequestsProvider(widget.tripId));
     final expensesAsync = ref.watch(tripExpensesProvider(widget.tripId));
     final uid = ref.watch(currentUidProvider);
+    final currentMember = ref.watch(currentUserMemberProvider(widget.tripId));
 
     final trip = tripAsync.valueOrNull;
     final members = membersAsync.valueOrNull ?? [];
@@ -107,6 +110,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         data: (_) => ListView(
           padding: const EdgeInsets.only(top: 8, bottom: 24),
           children: [
+            // ── Announcement banner ───────────────────────────────────────
+            if (trip != null &&
+                trip.announcement.isNotEmpty &&
+                trip.announcementSentAt != null &&
+                (currentMember?.announcementDismissedAt == null ||
+                    trip.announcementSentAt!
+                        .isAfter(currentMember!.announcementDismissedAt!)))
+              _AnnouncementBanner(
+                text: trip.announcement,
+                onDismiss: () {
+                  if (uid != null) {
+                    ref
+                        .read(tripRepositoryProvider)
+                        .dismissAnnouncement(widget.tripId, uid);
+                  }
+                },
+              ),
+
             // ── Hero card ──────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -814,6 +835,143 @@ class _StatusChip extends StatelessWidget {
         label,
         style: TextStyle(
             fontSize: 11, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+}
+
+// ── Announcement banner ──────────────────────────────────────────────────────
+
+class _AnnouncementBanner extends StatefulWidget {
+  final String text;
+  final VoidCallback onDismiss;
+
+  const _AnnouncementBanner({required this.text, required this.onDismiss});
+
+  @override
+  State<_AnnouncementBanner> createState() => _AnnouncementBannerState();
+}
+
+class _AnnouncementBannerState extends State<_AnnouncementBanner> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: isDark ? Colors.orange.shade100 : Colors.orange.shade900,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.orange.shade900.withAlpha(60)
+              : Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark
+                ? Colors.orange.shade700.withAlpha(100)
+                : Colors.orange.shade200,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 4, 0),
+              child: Row(
+                children: [
+                  Icon(Icons.campaign,
+                      size: 18,
+                      color: isDark
+                          ? Colors.orange.shade300
+                          : Colors.orange.shade800),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Announcement',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? Colors.orange.shade300
+                          : Colors.orange.shade800,
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      iconSize: 18,
+                      icon: Icon(Icons.close,
+                          color: isDark
+                              ? Colors.orange.shade300
+                              : Colors.orange.shade700),
+                      onPressed: widget.onDismiss,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Message body + conditional expand/collapse
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tp = TextPainter(
+                  text: TextSpan(text: widget.text, style: textStyle),
+                  maxLines: 2,
+                  textDirection: ui.TextDirection.ltr,
+                )..layout(maxWidth: constraints.maxWidth - 28); // 14px padding each side
+                final overflows = tp.didExceedMaxLines;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: overflows
+                          ? () => setState(() => _expanded = !_expanded)
+                          : null,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                        child: Text(
+                          widget.text,
+                          maxLines: _expanded ? null : 2,
+                          overflow: _expanded ? null : TextOverflow.ellipsis,
+                          style: textStyle,
+                        ),
+                      ),
+                    ),
+                    if (overflows)
+                      Center(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _expanded = !_expanded),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 6),
+                            child: Icon(
+                              _expanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 20,
+                              color: isDark
+                                  ? Colors.orange.shade400
+                                  : Colors.orange.shade600,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 10),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

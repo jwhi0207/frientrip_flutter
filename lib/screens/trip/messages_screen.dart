@@ -318,6 +318,36 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
 
+        // Announcement label
+        if (message.isAnnouncement && !message.deleted)
+          Padding(
+            padding: EdgeInsets.only(
+              left: isMe ? 0 : 44,
+              right: isMe ? 44 : 0,
+              bottom: 2,
+              top: 4,
+            ),
+            child: Align(
+              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.campaign,
+                      size: 13,
+                      color: Colors.orange.shade700),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Announcement',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         // Sender name (when avatar shown, for all users)
         if (showAvatar && !message.deleted)
           Padding(
@@ -425,9 +455,11 @@ class _MessageBubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isEditing
-              ? (isMe ? cs.primary.withAlpha(180) : cs.primaryContainer)
-              : (isMe ? cs.primary : cs.surfaceContainerHighest),
+          color: message.isAnnouncement
+              ? Colors.orange.shade600
+              : isEditing
+                  ? (isMe ? cs.primary.withAlpha(180) : cs.primaryContainer)
+                  : (isMe ? cs.primary : cs.surfaceContainerHighest),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),
@@ -445,7 +477,9 @@ class _MessageBubble extends StatelessWidget {
               child: Text(
                 message.text,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isMe ? cs.onPrimary : cs.onSurface,
+                  color: message.isAnnouncement
+                      ? Colors.white
+                      : (isMe ? cs.onPrimary : cs.onSurface),
                 ),
               ),
             ),

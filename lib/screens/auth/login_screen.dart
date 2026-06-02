@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isAnyLoading = _loading || _googleLoading;
 
     return Scaffold(
-      backgroundColor: kElectricCyan,
+      backgroundColor: const Color(0xFF33B6C7),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),

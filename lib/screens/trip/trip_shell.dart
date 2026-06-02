@@ -239,12 +239,13 @@ class _TripDrawer extends ConsumerWidget {
               title: const Text('Change Trips'),
               onTap: () => nav(() => context.go('/trips')),
             ),
-            ListTile(
-              leading: const Icon(Icons.campaign),
-              title: const Text('Trip Announcements'),
-              onTap: () => Navigator.of(context).pop(),
-            ),
             if (isAdmin) ...[
+              ListTile(
+                leading: const Icon(Icons.campaign),
+                title: const Text('Trip Announcement'),
+                onTap: () =>
+                    nav(() => context.push('/trips/$tripId/announcement')),
+              ),
               ListTile(
                 leading: const Icon(Icons.manage_accounts),
                 title: const Text('Manage Group'),

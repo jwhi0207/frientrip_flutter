@@ -700,6 +700,22 @@ class TripRepository {
     await batch.commit();
   }
 
+  Future<void> saveAnnouncement(String tripId, String text) async {
+    await _db.collection('trips').doc(tripId).update({
+      'announcement': text,
+      'announcementSentAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> dismissAnnouncement(String tripId, String uid) async {
+    await _db
+        .collection('trips')
+        .doc(tripId)
+        .collection('members')
+        .doc(uid)
+        .update({'announcementDismissedAt': FieldValue.serverTimestamp()});
+  }
+
   Future<void> toggleMuteMessages(String tripId, String uid, bool muted) async {
     await _db
         .collection('trips')

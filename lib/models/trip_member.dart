@@ -13,6 +13,7 @@ class TripMember {
   final String status;
   final bool isGuest;
   final bool mutedMessages;
+  final DateTime? announcementDismissedAt;
 
   const TripMember({
     required this.uid,
@@ -27,6 +28,7 @@ class TripMember {
     this.status = 'active',
     this.isGuest = false,
     this.mutedMessages = false,
+    this.announcementDismissedAt,
   });
 
   bool get isDeactivated => status == 'deactivated';
@@ -46,6 +48,7 @@ class TripMember {
       status: d['status'] as String? ?? 'active',
       isGuest: d['isGuest'] as bool? ?? false,
       mutedMessages: d['mutedMessages'] as bool? ?? false,
+      announcementDismissedAt: (d['announcementDismissedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -62,6 +65,8 @@ class TripMember {
     'status': status,
     'isGuest': isGuest,
     'mutedMessages': mutedMessages,
+    if (announcementDismissedAt != null)
+      'announcementDismissedAt': Timestamp.fromDate(announcementDismissedAt!),
   };
 
   TripMember copyWith({
@@ -75,6 +80,7 @@ class TripMember {
     String? status,
     bool? isGuest,
     bool? mutedMessages,
+    DateTime? announcementDismissedAt,
   }) => TripMember(
     uid: uid,
     displayName: displayName ?? this.displayName,
@@ -88,5 +94,6 @@ class TripMember {
     status: status ?? this.status,
     isGuest: isGuest ?? this.isGuest,
     mutedMessages: mutedMessages ?? this.mutedMessages,
+    announcementDismissedAt: announcementDismissedAt ?? this.announcementDismissedAt,
   );
 }

@@ -42,6 +42,27 @@ class MessageRepository {
     });
   }
 
+  Future<void> sendAnnouncement(
+    String tripId, {
+    required String text,
+    required String senderUid,
+    required String senderName,
+    required int senderAvatarSeed,
+    required int senderAvatarColor,
+  }) async {
+    await _messagesRef(tripId).add({
+      'text': text,
+      'senderUid': senderUid,
+      'senderName': senderName,
+      'senderAvatarSeed': senderAvatarSeed,
+      'senderAvatarColor': senderAvatarColor,
+      'createdAt': FieldValue.serverTimestamp(),
+      'deleted': false,
+      'edited': false,
+      'isAnnouncement': true,
+    });
+  }
+
   Future<void> deleteMessage(String tripId, String messageId) async {
     await _messagesRef(tripId).doc(messageId).update({
       'deleted': true,

@@ -19,6 +19,8 @@ class Trip {
   final String description;
   final String emoji;
   final bool nightsLocked;
+  final String announcement;
+  final DateTime? announcementSentAt;
 
   const Trip({
     required this.id,
@@ -39,6 +41,8 @@ class Trip {
     this.description = '',
     this.emoji = '',
     this.nightsLocked = false,
+    this.announcement = '',
+    this.announcementSentAt,
   });
 
   factory Trip.fromFirestore(DocumentSnapshot doc) {
@@ -62,6 +66,8 @@ class Trip {
       description: d['description'] as String? ?? '',
       emoji: d['emoji'] as String? ?? '',
       nightsLocked: d['nightsLocked'] as bool? ?? false,
+      announcement: d['announcement'] as String? ?? '',
+      announcementSentAt: (d['announcementSentAt'] as Timestamp?)?.toDate(),
     );
   }
 }

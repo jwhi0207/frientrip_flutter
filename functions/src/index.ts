@@ -63,13 +63,20 @@ export const onNewMessage = onDocumentCreated(
     const tripDoc = await db.collection("trips").doc(tripId).get();
     const tripName = tripDoc.data()?.name ?? "Trip";
 
-    // 5. Send FCM notifications
+    // 5. Build notification content (announcements get special formatting)
+    const isAnnouncement = messageData.isAnnouncement === true;
+    const notifTitle = isAnnouncement ? "Announcement" : "New Message!";
+    const notifBody = isAnnouncement
+      ? `${messageData.text}`
+      : `${senderName} sent a message in ${tripName}`;
+
+    // 6. Send FCM notifications
     const messaging = getMessaging();
     const response = await messaging.sendEachForMulticast({
       tokens,
       notification: {
-        title: "New Message!",
-        body: `${senderName} sent a message in ${tripName}`,
+        title: notifTitle,
+        body: notifBody,
       },
       data: {
         tripId: tripId,

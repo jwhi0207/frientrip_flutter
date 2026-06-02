@@ -14,6 +14,7 @@ import 'screens/trip/messages_screen.dart';
 import 'screens/trip/expenses_screen.dart';
 import 'screens/trip/manage_screen.dart';
 import 'screens/trip/history_screen.dart';
+import 'screens/trip/announcement_screen.dart';
 import 'screens/profile/profile_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -90,6 +91,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/trips/:tripId/history',
         builder: (_, s) =>
             HistoryScreen(tripId: s.pathParameters['tripId']!),
+      ),
+      GoRoute(
+        path: '/trips/:tripId/announcement',
+        builder: (_, s) =>
+            AnnouncementScreen(tripId: s.pathParameters['tripId']!),
       ),
     ],
   );
