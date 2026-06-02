@@ -11,6 +11,11 @@ class Message {
   final bool deleted;
   final bool edited;
   final bool isAnnouncement;
+  final String? mediaUrl;
+  final String? mediaStoragePath;
+  final String? mediaType; // 'photo' or 'video'
+
+  bool get hasMedia => mediaUrl != null && mediaUrl!.isNotEmpty;
 
   const Message({
     required this.id,
@@ -23,6 +28,9 @@ class Message {
     this.deleted = false,
     this.edited = false,
     this.isAnnouncement = false,
+    this.mediaUrl,
+    this.mediaStoragePath,
+    this.mediaType,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -38,6 +46,9 @@ class Message {
       deleted: d['deleted'] as bool? ?? false,
       edited: d['edited'] as bool? ?? false,
       isAnnouncement: d['isAnnouncement'] as bool? ?? false,
+      mediaUrl: d['mediaUrl'] as String?,
+      mediaStoragePath: d['mediaStoragePath'] as String?,
+      mediaType: d['mediaType'] as String?,
     );
   }
 

@@ -21,6 +21,9 @@ class MessageRepository {
     required String senderName,
     required int senderAvatarSeed,
     required int senderAvatarColor,
+    String? mediaUrl,
+    String? mediaStoragePath,
+    String? mediaType,
   }) async {
     await _messagesRef(tripId).add({
       'text': text,
@@ -31,6 +34,9 @@ class MessageRepository {
       'createdAt': FieldValue.serverTimestamp(),
       'deleted': false,
       'edited': false,
+      if (mediaUrl != null) 'mediaUrl': mediaUrl,
+      if (mediaStoragePath != null) 'mediaStoragePath': mediaStoragePath,
+      if (mediaType != null) 'mediaType': mediaType,
     });
   }
 

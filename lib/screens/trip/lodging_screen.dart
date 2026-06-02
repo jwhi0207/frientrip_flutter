@@ -158,10 +158,15 @@ class _LodgingScreenState extends ConsumerState<LodgingScreen> {
     }
 
     if (tripAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => Navigator.of(context).pop()),
+        title: const Text('Lodging'),
+      ),
+      body: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,8 +422,9 @@ class _LodgingScreenState extends ConsumerState<LodgingScreen> {
           const SizedBox(height: 16),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _fieldLabel(BuildContext context, String text) => Text(
         text,

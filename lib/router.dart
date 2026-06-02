@@ -7,6 +7,7 @@ import 'screens/trips/trip_list_screen.dart';
 import 'screens/trip/trip_shell.dart';
 import 'screens/trip/dashboard_screen.dart';
 import 'screens/trip/lodging_screen.dart';
+import 'screens/trip/photos_screen.dart';
 import 'screens/trip/supplies_screen.dart';
 import 'screens/trip/carpool_screen.dart';
 import 'screens/trip/group_screen.dart';
@@ -47,11 +48,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 DashboardScreen(tripId: s.pathParameters['tripId']!),
           ),
           GoRoute(
-            path: '/trips/:tripId/lodging',
-            builder: (_, s) =>
-                LodgingScreen(tripId: s.pathParameters['tripId']!),
-          ),
-          GoRoute(
             path: '/trips/:tripId/supplies',
             builder: (_, s) =>
                 SuppliesScreen(tripId: s.pathParameters['tripId']!),
@@ -60,6 +56,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/trips/:tripId/carpool',
             builder: (_, s) =>
                 CarpoolScreen(tripId: s.pathParameters['tripId']!),
+          ),
+          GoRoute(
+            path: '/trips/:tripId/photos',
+            builder: (_, s) =>
+                PhotosScreen(tripId: s.pathParameters['tripId']!),
           ),
           GoRoute(
             path: '/trips/:tripId/messages',
@@ -74,6 +75,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/trips/:tripId/group',
         builder: (_, s) =>
             GroupScreen(tripId: s.pathParameters['tripId']!),
+      ),
+
+      // Lodging (pushed from dashboard card, no longer a tab)
+      GoRoute(
+        path: '/trips/:tripId/lodging',
+        builder: (_, s) =>
+            LodgingScreen(tripId: s.pathParameters['tripId']!),
       ),
 
       // Pushed routes (full-screen, no shell)
