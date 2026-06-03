@@ -285,6 +285,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                             .read(messageRepositoryProvider)
                             .deleteMessage(widget.tripId, msg.id)
                         : null,
+                    tripId: widget.tripId,
+                    currentUid: uid ?? '',
+                    onReaction: (emoji) {
+                      if (uid == null) return;
+                      ref.read(messageRepositoryProvider).toggleReaction(
+                            widget.tripId, msg.id, emoji, uid);
+                    },
                   );
                 },
               );
@@ -392,6 +399,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   }
 }
 
+const _reactionEmojis = ['👍', '❤️', '😂', '😮', '🎉', '🔥'];
+
 class _MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
@@ -400,15 +409,21 @@ class _MessageBubble extends StatelessWidget {
   final bool isEditing;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final String tripId;
+  final String currentUid;
+  final ValueChanged<String>? onReaction;
 
   const _MessageBubble({
     required this.message,
     required this.isMe,
     required this.showAvatar,
     required this.showTimestamp,
+    required this.tripId,
+    required this.currentUid,
     this.isEditing = false,
     this.onEdit,
     this.onDelete,
+    this.onReaction,
   });
 
   @override
@@ -508,11 +523,19 @@ class _MessageBubble extends StatelessWidget {
 
               if (!isMe) const SizedBox(width: 8),
 
-              // Bubble
+              // Bubble + reactions
               Flexible(
-                child: message.deleted
-                    ? _buildDeletedBubble(theme, cs)
-                    : _buildMessageBubble(context, theme, cs),
+                child: Column(
+                  crossAxisAlignment:
+                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    message.deleted
+                        ? _buildDeletedBubble(theme, cs)
+                        : _buildMessageBubble(context, theme, cs),
+                    if (message.reactions.isNotEmpty)
+                      _buildReactions(context, theme, cs),
+                  ],
+                ),
               ),
 
               // Avatar (right side for own messages)
@@ -586,7 +609,7 @@ class _MessageBubble extends StatelessWidget {
             MaterialPageRoute(builder: (_) => MediaPreviewScreen(media: media)),
           );
         },
-        onLongPress: (onDelete != null) ? () => _showOptionsSheet(context) : null,
+        onLongPress: () => _showOptionsSheet(context),
         child: ClipRRect(
           borderRadius: borderRadius,
           child: SizedBox(
@@ -618,9 +641,7 @@ class _MessageBubble extends StatelessWidget {
     }
 
     return GestureDetector(
-      onLongPress: (onEdit != null || onDelete != null)
-          ? () => _showOptionsSheet(context)
-          : null,
+      onLongPress: () => _showOptionsSheet(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -671,6 +692,51 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
+  Widget _buildReactions(BuildContext context, ThemeData theme, ColorScheme cs) {
+    final sorted = message.reactions.entries.toList()
+      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: sorted.map((entry) {
+          final isMine = entry.value.contains(currentUid);
+          return GestureDetector(
+            onTap: () => onReaction?.call(entry.key),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isMine
+                    ? cs.primary.withAlpha(40)
+                    : cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isMine ? cs.primary.withAlpha(120) : cs.outlineVariant,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(entry.key, style: const TextStyle(fontSize: 14)),
+                  if (entry.value.length > 1) ...[
+                    const SizedBox(width: 3),
+                    Text('${entry.value.length}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isMine ? cs.primary : cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   void _showOptionsSheet(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
@@ -679,6 +745,34 @@ class _MessageBubble extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Emoji reaction bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: _reactionEmojis.map((emoji) {
+                  final reacted =
+                      message.reactions[emoji]?.contains(currentUid) ?? false;
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      onReaction?.call(emoji);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: reacted
+                            ? cs.primary.withAlpha(40)
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(emoji, style: const TextStyle(fontSize: 28)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const Divider(height: 1),
             if (onEdit != null)
               ListTile(
                 leading: const Icon(Icons.edit),

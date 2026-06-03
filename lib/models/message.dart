@@ -14,6 +14,7 @@ class Message {
   final String? mediaUrl;
   final String? mediaStoragePath;
   final String? mediaType; // 'photo' or 'video'
+  final Map<String, List<String>> reactions; // emoji → list of uids
 
   bool get hasMedia => mediaUrl != null && mediaUrl!.isNotEmpty;
 
@@ -31,6 +32,7 @@ class Message {
     this.mediaUrl,
     this.mediaStoragePath,
     this.mediaType,
+    this.reactions = const {},
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -49,7 +51,16 @@ class Message {
       mediaUrl: d['mediaUrl'] as String?,
       mediaStoragePath: d['mediaStoragePath'] as String?,
       mediaType: d['mediaType'] as String?,
+      reactions: _parseReactions(d['reactions']),
     );
+  }
+
+  static Map<String, List<String>> _parseReactions(dynamic raw) {
+    if (raw is! Map) return {};
+    return raw.map((key, value) => MapEntry(
+          key as String,
+          (value as List<dynamic>).cast<String>(),
+        ));
   }
 
   Map<String, dynamic> toMap() => {
