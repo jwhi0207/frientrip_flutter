@@ -1,11 +1,17 @@
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../models/message.dart';
+import '../../models/trip_media.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/messages_provider.dart';
+import '../../providers/media_provider.dart';
 import '../../providers/members_provider.dart';
+import '../../providers/messages_provider.dart';
 import '../../widgets/avatar_widget.dart';
+import 'media_preview_screen.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   final String tripId;
@@ -54,6 +60,108 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
       _editingMessageId = null;
       _controller.clear();
     });
+  }
+
+  void _showMediaPickSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              subtitle: const Text('Photos & videos'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndSendMedia(fromCamera: false);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndSendMedia(fromCamera: true);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isVideoFile(String name) {
+    final ext = name.split('.').last.toLowerCase();
+    return ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'].contains(ext);
+  }
+
+  Future<void> _pickAndSendMedia({required bool fromCamera}) async {
+    XFile? xfile;
+    if (fromCamera) {
+      xfile = await ImagePicker().pickImage(source: ImageSource.camera);
+    } else {
+      xfile = await ImagePicker().pickMedia();
+    }
+    if (xfile == null || !mounted) return;
+
+    final isVideo = _isVideoFile(xfile.name);
+    const maxPhotoBytes = 25 * 1024 * 1024;
+    const maxVideoBytes = 100 * 1024 * 1024;
+    final size = File(xfile.path).lengthSync();
+    if (size > (isVideo ? maxVideoBytes : maxPhotoBytes)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'File is too large. Limit is ${isVideo ? '100 MB' : '25 MB'}.'),
+        ));
+      }
+      return;
+    }
+
+    final uid = ref.read(currentUidProvider);
+    if (uid == null) return;
+    final members =
+        ref.read(tripMembersProvider(widget.tripId)).valueOrNull ?? [];
+    final me = members.where((m) => m.uid == uid).firstOrNull;
+    if (me == null) return;
+
+    setState(() => _sending = true);
+    try {
+      // Upload to media collection — also surfaces in Photos tab
+      final mediaRepo = ref.read(mediaRepositoryProvider);
+      final result = await mediaRepo.uploadMedia(
+        widget.tripId,
+        file: File(xfile.path),
+        type: isVideo ? 'video' : 'photo',
+        uploadedByUid: uid,
+        uploadedByName: me.displayName,
+      );
+
+      // Send as a message referencing the uploaded media
+      await ref.read(messageRepositoryProvider).sendMessage(
+        widget.tripId,
+        text: '',
+        senderUid: uid,
+        senderName: me.displayName,
+        senderAvatarSeed: me.avatarSeed,
+        senderAvatarColor: me.avatarColor,
+        mediaUrl: result.url,
+        mediaStoragePath: result.storagePath,
+        mediaType: isVideo ? 'video' : 'photo',
+      );
+
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   Future<void> _send() async {
@@ -177,6 +285,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                             .read(messageRepositoryProvider)
                             .deleteMessage(widget.tripId, msg.id)
                         : null,
+                    tripId: widget.tripId,
+                    currentUid: uid ?? '',
+                    onReaction: (emoji) {
+                      if (uid == null) return;
+                      ref.read(messageRepositoryProvider).toggleReaction(
+                            widget.tripId, msg.id, emoji, uid);
+                    },
                   );
                 },
               );
@@ -221,9 +336,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+              padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
               child: Row(
                 children: [
+                  if (_editingMessageId == null)
+                    IconButton(
+                      icon: const Icon(Icons.image_outlined),
+                      tooltip: 'Send photo or video',
+                      onPressed: _sending ? null : _showMediaPickSheet,
+                    ),
                   Expanded(
                     child: TextField(
                       controller: _controller,
@@ -278,6 +399,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   }
 }
 
+const _reactionEmojis = ['👍', '❤️', '😂', '😮', '🎉', '🔥'];
+
 class _MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
@@ -286,15 +409,21 @@ class _MessageBubble extends StatelessWidget {
   final bool isEditing;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final String tripId;
+  final String currentUid;
+  final ValueChanged<String>? onReaction;
 
   const _MessageBubble({
     required this.message,
     required this.isMe,
     required this.showAvatar,
     required this.showTimestamp,
+    required this.tripId,
+    required this.currentUid,
     this.isEditing = false,
     this.onEdit,
     this.onDelete,
+    this.onReaction,
   });
 
   @override
@@ -394,11 +523,19 @@ class _MessageBubble extends StatelessWidget {
 
               if (!isMe) const SizedBox(width: 8),
 
-              // Bubble
+              // Bubble + reactions
               Flexible(
-                child: message.deleted
-                    ? _buildDeletedBubble(theme, cs)
-                    : _buildMessageBubble(context, theme, cs),
+                child: Column(
+                  crossAxisAlignment:
+                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    message.deleted
+                        ? _buildDeletedBubble(theme, cs)
+                        : _buildMessageBubble(context, theme, cs),
+                    if (message.reactions.isNotEmpty)
+                      _buildReactions(context, theme, cs),
+                  ],
+                ),
               ),
 
               // Avatar (right side for own messages)
@@ -448,10 +585,63 @@ class _MessageBubble extends StatelessWidget {
 
   Widget _buildMessageBubble(
       BuildContext context, ThemeData theme, ColorScheme cs) {
+    // Media-only bubble (no text)
+    if (message.hasMedia && message.text.isEmpty) {
+      final borderRadius = BorderRadius.only(
+        topLeft: const Radius.circular(18),
+        topRight: const Radius.circular(18),
+        bottomLeft: Radius.circular(isMe ? 18 : (showAvatar ? 4 : 18)),
+        bottomRight: Radius.circular(isMe ? (showAvatar ? 4 : 18) : 18),
+      );
+      return GestureDetector(
+        onTap: () {
+          final media = TripMedia(
+            id: message.id,
+            uploadedByUid: message.senderUid,
+            uploadedByName: message.senderName,
+            type: message.mediaType ?? 'photo',
+            storageUrl: message.mediaUrl!,
+            storagePath: message.mediaStoragePath ?? '',
+            fileName: '',
+            createdAt: message.createdAt,
+          );
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => MediaPreviewScreen(media: media)),
+          );
+        },
+        onLongPress: () => _showOptionsSheet(context),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: message.mediaType == 'video'
+                ? Container(
+                    color: Colors.grey.shade900,
+                    child: const Center(
+                      child: Icon(Icons.play_circle_fill,
+                          size: 48, color: Colors.white70),
+                    ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: message.mediaUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: Colors.grey.shade800,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      color: Colors.grey.shade800,
+                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                    ),
+                  ),
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
-      onLongPress: (onEdit != null || onDelete != null)
-          ? () => _showOptionsSheet(context)
-          : null,
+      onLongPress: () => _showOptionsSheet(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -502,6 +692,51 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
+  Widget _buildReactions(BuildContext context, ThemeData theme, ColorScheme cs) {
+    final sorted = message.reactions.entries.toList()
+      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: sorted.map((entry) {
+          final isMine = entry.value.contains(currentUid);
+          return GestureDetector(
+            onTap: () => onReaction?.call(entry.key),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isMine
+                    ? cs.primary.withAlpha(40)
+                    : cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isMine ? cs.primary.withAlpha(120) : cs.outlineVariant,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(entry.key, style: const TextStyle(fontSize: 14)),
+                  if (entry.value.length > 1) ...[
+                    const SizedBox(width: 3),
+                    Text('${entry.value.length}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isMine ? cs.primary : cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        )),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   void _showOptionsSheet(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
@@ -510,6 +745,34 @@ class _MessageBubble extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Emoji reaction bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: _reactionEmojis.map((emoji) {
+                  final reacted =
+                      message.reactions[emoji]?.contains(currentUid) ?? false;
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      onReaction?.call(emoji);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: reacted
+                            ? cs.primary.withAlpha(40)
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(emoji, style: const TextStyle(fontSize: 28)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const Divider(height: 1),
             if (onEdit != null)
               ListTile(
                 leading: const Icon(Icons.edit),

@@ -85,9 +85,13 @@
 			</dict>
 		</array>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>Used to select a trip cover photo.</string>
+		<string>Used to select photos and videos to share with your trip group.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Used to save trip photos and videos to your gallery.</string>
 		<key>NSCameraUsageDescription</key>
-		<string>Used to take a trip cover photo.</string>
+		<string>Used to take photos and videos to share with your trip group.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Used to record videos to share with your trip group.</string>
 		<key>LSApplicationQueriesSchemes</key>
 		<array>
 			<string>https</string>

@@ -19,9 +19,9 @@ class TripShell extends ConsumerWidget {
   }
 
   int _activeTab(String path) {
-    if (path.contains('/lodging')) return 1;
-    if (path.contains('/supplies')) return 2;
-    if (path.contains('/carpool')) return 3;
+    if (path.contains('/supplies')) return 1;
+    if (path.contains('/carpool')) return 2;
+    if (path.contains('/photos')) return 3;
     if (path.contains('/messages')) return 4;
     return 0;
   }
@@ -69,7 +69,7 @@ class TripShell extends ConsumerWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _activeTab(path),
         onDestinationSelected: (i) {
-          const tabs = ['dashboard', 'lodging', 'supplies', 'carpool', 'messages'];
+          const tabs = ['dashboard', 'supplies', 'carpool', 'photos', 'messages'];
           context.go('/trips/$tripId/${tabs[i]}');
         },
         destinations: const [
@@ -77,11 +77,6 @@ class TripShell extends ConsumerWidget {
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map),
             label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.hotel_outlined),
-            selectedIcon: Icon(Icons.hotel),
-            label: 'Lodging',
           ),
           NavigationDestination(
             icon: Icon(Icons.checklist_outlined),
@@ -92,6 +87,11 @@ class TripShell extends ConsumerWidget {
             icon: Icon(Icons.directions_car_outlined),
             selectedIcon: Icon(Icons.directions_car),
             label: 'Carpool',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.photo_library_outlined),
+            selectedIcon: Icon(Icons.photo_library),
+            label: 'Photos',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),

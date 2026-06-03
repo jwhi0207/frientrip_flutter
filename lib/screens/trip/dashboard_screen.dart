@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 
@@ -138,6 +139,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
+            // ── Countdown card ────────────────────────────────────────────
+            if (trip != null && trip.checkInMillis > 0)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                child: _CountdownCard(checkInMillis: trip.checkInMillis),
+              ),
 
             // ── Feature cards ──────────────────────────────────────────────
             Padding(
@@ -365,6 +373,124 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 }
 
 // ── Hero card ─────────────────────────────────────────────────────────────────
+
+class _CountdownCard extends StatefulWidget {
+  final int checkInMillis;
+  const _CountdownCard({required this.checkInMillis});
+
+  @override
+  State<_CountdownCard> createState() => _CountdownCardState();
+}
+
+class _CountdownCardState extends State<_CountdownCard> {
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final checkIn =
+        DateTime.fromMillisecondsSinceEpoch(widget.checkInMillis);
+    final diff = checkIn.difference(DateTime.now());
+
+    if (diff.isNegative) return const SizedBox.shrink();
+
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+    final seconds = diff.inSeconds % 60;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [cs.primary, cs.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _CountdownUnit(value: days, label: 'DAYS', color: cs.onPrimary),
+          _CountdownSeparator(color: cs.onPrimary),
+          _CountdownUnit(value: hours, label: 'HRS', color: cs.onPrimary),
+          _CountdownSeparator(color: cs.onPrimary),
+          _CountdownUnit(value: minutes, label: 'MIN', color: cs.onPrimary),
+          _CountdownSeparator(color: cs.onPrimary),
+          _CountdownUnit(value: seconds, label: 'SEC', color: cs.onPrimary),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountdownUnit extends StatelessWidget {
+  final int value;
+  final String label;
+  final Color color;
+  const _CountdownUnit(
+      {required this.value, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 64,
+      child: Column(
+        children: [
+          Text(
+            value.toString().padLeft(2, '0'),
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color.withAlpha(180),
+                  letterSpacing: 1,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountdownSeparator extends StatelessWidget {
+  final Color color;
+  const _CountdownSeparator({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Text(
+        ':',
+        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              color: color.withAlpha(150),
+              fontWeight: FontWeight.bold,
+            ),
+      ),
+    );
+  }
+}
 
 class _HeroCard extends StatelessWidget {
   final dynamic trip;
@@ -701,7 +827,7 @@ class _MemberRow extends StatelessWidget {
     final theme = Theme.of(context);
     final m = member;
     final remaining = computedOwed - m.amountPaid;
-    final isPaidUp = remaining <= 0.0;
+    final isPaidUp = remaining < 0.005;
     final hasPending = m.pendingPaymentStatus == 'pending';
     final canEditNights = (isCurrentUser || isAdmin) && (!nightsLocked || isAdmin);
     final canAddPayment = isAdmin;
