@@ -69,6 +69,26 @@ class MessageRepository {
     });
   }
 
+  Future<void> toggleReaction(
+      String tripId, String messageId, String emoji, String uid) async {
+    final doc = _messagesRef(tripId).doc(messageId);
+    final snap = await doc.get();
+    final data = snap.data() as Map<String, dynamic>?;
+    final reactions = Map<String, dynamic>.from(data?['reactions'] ?? {});
+    final uids = List<String>.from(reactions[emoji] ?? []);
+    if (uids.contains(uid)) {
+      uids.remove(uid);
+    } else {
+      uids.add(uid);
+    }
+    if (uids.isEmpty) {
+      reactions.remove(emoji);
+    } else {
+      reactions[emoji] = uids;
+    }
+    await doc.update({'reactions': reactions});
+  }
+
   Future<void> deleteMessage(String tripId, String messageId) async {
     await _messagesRef(tripId).doc(messageId).update({
       'deleted': true,
