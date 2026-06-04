@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/media_provider.dart';
 import '../../providers/members_provider.dart';
 import '../../providers/messages_provider.dart';
+import '../../providers/trip_provider.dart' hide tripMembersProvider;
 import '../../widgets/avatar_widget.dart';
 import 'media_preview_screen.dart';
 
@@ -25,9 +26,25 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _sending = false;
+  DateTime? _unreadCutoff;
 
   // Edit mode state
   String? _editingMessageId;
+
+  @override
+  void initState() {
+    super.initState();
+    final member = ref.read(currentUserMemberProvider(widget.tripId));
+    _unreadCutoff = member?.lastSeenMessages;
+    _markSeen();
+  }
+
+  void _markSeen() {
+    final uid = ref.read(currentUidProvider);
+    if (uid != null) {
+      ref.read(tripRepositoryProvider).markMessagesSeen(widget.tripId, uid);
+    }
+  }
 
   @override
   void dispose() {
@@ -217,11 +234,14 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     final uid = ref.watch(currentUidProvider);
     final messagesAsync = ref.watch(messagesProvider(widget.tripId));
 
-    // Auto-scroll when new messages arrive
+    // Auto-scroll and mark seen when new messages arrive
     ref.listen(messagesProvider(widget.tripId), (prev, next) {
       final prevLen = prev?.valueOrNull?.length ?? 0;
       final nextLen = next.valueOrNull?.length ?? 0;
-      if (nextLen > prevLen) _scrollToBottom();
+      if (nextLen > prevLen) {
+        _scrollToBottom();
+        _markSeen();
+      }
     });
 
     return Column(
@@ -256,20 +276,67 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                 );
               }
 
+              int? unreadDividerIndex;
+              if (_unreadCutoff != null) {
+                for (int i = 0; i < messages.length; i++) {
+                  final m = messages[i];
+                  if (m.senderUid != uid &&
+                      !m.deleted &&
+                      m.createdAt != null &&
+                      m.createdAt!.isAfter(_unreadCutoff!)) {
+                    unreadDividerIndex = i;
+                    break;
+                  }
+                }
+              }
+
+              final hasDiv = unreadDividerIndex != null;
+              final totalItems = messages.length + (hasDiv ? 1 : 0);
+
               return ListView.builder(
                 controller: _scrollController,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: messages.length,
+                itemCount: totalItems,
                 itemBuilder: (context, index) {
-                  final msg = messages[index];
+                  if (hasDiv && index == unreadDividerIndex) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Divider(color: cs.error, thickness: 1),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'NEW',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: cs.error,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(color: cs.error, thickness: 1),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final msgIndex = hasDiv && index > unreadDividerIndex!
+                      ? index - 1
+                      : index;
+                  final msg = messages[msgIndex];
                   final isMe = msg.senderUid == uid;
-                  final showAvatar = index == 0 ||
-                      messages[index - 1].senderUid != msg.senderUid ||
-                      messages[index - 1].deleted;
-                  final showTimestamp = index == 0 ||
+                  final showAvatar = msgIndex == 0 ||
+                      messages[msgIndex - 1].senderUid != msg.senderUid ||
+                      messages[msgIndex - 1].deleted;
+                  final showTimestamp = msgIndex == 0 ||
                       _shouldShowTimestamp(
-                          messages[index - 1].createdAt, msg.createdAt);
+                          messages[msgIndex - 1].createdAt, msg.createdAt);
 
                   return _MessageBubble(
                     message: msg,

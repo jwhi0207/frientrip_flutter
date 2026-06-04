@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/members_provider.dart' hide tripMembersProvider;
+import '../../providers/messages_provider.dart';
 import '../../providers/trip_provider.dart';
 import '../../widgets/avatar_widget.dart';
 import 'dashboard_screen.dart' show RenameTripDialog;
@@ -66,40 +67,64 @@ class TripShell extends ConsumerWidget {
       ),
       drawer: _TripDrawer(tripId: tripId, isAdmin: isAdmin),
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _activeTab(path),
-        onDestinationSelected: (i) {
-          const tabs = ['dashboard', 'supplies', 'carpool', 'photos', 'messages'];
-          context.go('/trips/$tripId/${tabs[i]}');
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist),
-            label: 'Supplies',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.directions_car_outlined),
-            selectedIcon: Icon(Icons.directions_car),
-            label: 'Carpool',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.photo_library_outlined),
-            selectedIcon: Icon(Icons.photo_library),
-            label: 'Photos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Messages',
-          ),
-        ],
+      bottomNavigationBar: _BottomNav(
+        tripId: tripId,
+        activeTab: _activeTab(path),
       ),
+    );
+  }
+}
+
+class _BottomNav extends ConsumerWidget {
+  final String tripId;
+  final int activeTab;
+  const _BottomNav({required this.tripId, required this.activeTab});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadMessageCountProvider(tripId));
+
+    return NavigationBar(
+      selectedIndex: activeTab,
+      onDestinationSelected: (i) {
+        const tabs = ['dashboard', 'supplies', 'carpool', 'photos', 'messages'];
+        context.go('/trips/$tripId/${tabs[i]}');
+      },
+      destinations: [
+        const NavigationDestination(
+          icon: Icon(Icons.map_outlined),
+          selectedIcon: Icon(Icons.map),
+          label: 'Home',
+        ),
+        const NavigationDestination(
+          icon: Icon(Icons.checklist_outlined),
+          selectedIcon: Icon(Icons.checklist),
+          label: 'Supplies',
+        ),
+        const NavigationDestination(
+          icon: Icon(Icons.directions_car_outlined),
+          selectedIcon: Icon(Icons.directions_car),
+          label: 'Carpool',
+        ),
+        const NavigationDestination(
+          icon: Icon(Icons.photo_library_outlined),
+          selectedIcon: Icon(Icons.photo_library),
+          label: 'Photos',
+        ),
+        NavigationDestination(
+          icon: Badge(
+            isLabelVisible: unread > 0,
+            label: Text(unread > 99 ? '99+' : '$unread'),
+            child: const Icon(Icons.chat_bubble_outline),
+          ),
+          selectedIcon: Badge(
+            isLabelVisible: unread > 0,
+            label: Text(unread > 99 ? '99+' : '$unread'),
+            child: const Icon(Icons.chat_bubble),
+          ),
+          label: 'Messages',
+        ),
+      ],
     );
   }
 }

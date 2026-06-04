@@ -263,7 +263,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Flexible(
+                  Expanded(
                     child: GestureDetector(
                       onTap: () => context.push('/trips/${widget.tripId}/group'),
                       child: Text('Group Members',
@@ -277,7 +277,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               )),
                     ),
                   ),
-                  const Spacer(),
                   if (isAdmin) ...[
                     IconButton(
                       onPressed: () => ref

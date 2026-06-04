@@ -90,13 +90,15 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
       builder: (_) => _AddSupplySheet(
         existingNames: existingNames,
         onSave: (name, category, quantity) {
+          final uid = ref.read(currentUidProvider) ?? '';
           ref.read(tripRepositoryProvider).addSupplyItem(
-                widget.tripId, name, category, quantity);
+                widget.tripId, name, category, quantity, addedByUid: uid);
           Navigator.pop(context);
         },
         onSaveAndClaim: (name, category, quantity) {
+          final uid = ref.read(currentUidProvider) ?? '';
           ref.read(tripRepositoryProvider).addSupplyItem(
-                widget.tripId, name, category, quantity);
+                widget.tripId, name, category, quantity, addedByUid: uid);
           setState(() => _pendingClaimName = name);
           Navigator.pop(context);
         },
@@ -276,8 +278,9 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
                         color: Theme.of(context).colorScheme.primary),
                     label: Text(qa.$1),
                     onPressed: () {
+                      final uid = ref.read(currentUidProvider) ?? '';
                       ref.read(tripRepositoryProvider).addSupplyItem(
-                            widget.tripId, qa.$1, qa.$2, '');
+                            widget.tripId, qa.$1, qa.$2, '', addedByUid: uid);
                       setState(() => _pendingClaimName = qa.$1);
                     },
                   );
@@ -311,6 +314,7 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
                   items: grouped[cat]!,
                   isCollapsed: _collapsed[cat] ?? true,
                   isAdmin: isAdmin,
+                  currentUid: uid,
                   onToggle: () => setState(
                       () => _collapsed[cat] = !(_collapsed[cat] ?? true)),
                   onItemTap: _showDetailSheet,
@@ -331,6 +335,7 @@ class _CategoryCard extends StatelessWidget {
   final List<SupplyItem> items;
   final bool isCollapsed;
   final bool isAdmin;
+  final String? currentUid;
   final VoidCallback onToggle;
   final ValueChanged<SupplyItem> onItemTap;
   final ValueChanged<SupplyItem> onDelete;
@@ -341,6 +346,7 @@ class _CategoryCard extends StatelessWidget {
     required this.items,
     required this.isCollapsed,
     required this.isAdmin,
+    required this.currentUid,
     required this.onToggle,
     required this.onItemTap,
     required this.onDelete,
@@ -417,6 +423,7 @@ class _CategoryCard extends StatelessWidget {
                   _SupplyItemRow(
                     item: items[i],
                     isAdmin: isAdmin,
+                    currentUid: currentUid,
                     onTap: () => onItemTap(items[i]),
                     onDelete: () => onDelete(items[i]),
                   ),
@@ -434,12 +441,14 @@ class _CategoryCard extends StatelessWidget {
 class _SupplyItemRow extends StatelessWidget {
   final SupplyItem item;
   final bool isAdmin;
+  final String? currentUid;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const _SupplyItemRow({
     required this.item,
     required this.isAdmin,
+    required this.currentUid,
     required this.onTap,
     required this.onDelete,
   });
@@ -508,7 +517,9 @@ class _SupplyItemRow extends StatelessWidget {
       ),
     );
 
-    if (!isAdmin) return row;
+    final canDelete = isAdmin ||
+        (currentUid != null && currentUid!.isNotEmpty && item.addedByUid == currentUid);
+    if (!canDelete) return row;
 
     return Dismissible(
       key: ValueKey(item.id),
@@ -1099,7 +1110,7 @@ class _BillToGroupSheetState extends State<_BillToGroupSheet> {
               spacing: 8,
               children: [
                 FilterChip(
-                  label: const Text('Split Evenly'),
+                  label: const Text('Split per Person'),
                   selected: _splitMethod == 'even',
                   onSelected: (_) => setState(() => _splitMethod = 'even'),
                 ),

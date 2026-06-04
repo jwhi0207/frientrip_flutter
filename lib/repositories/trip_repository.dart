@@ -300,8 +300,9 @@ class TripRepository {
     String tripId,
     String name,
     String category,
-    String quantity,
-  ) async {
+    String quantity, {
+    String addedByUid = '',
+  }) async {
     final snap = await _db
         .collection('trips')
         .doc(tripId)
@@ -319,6 +320,7 @@ class TripRepository {
       'claimedByUids': [],
       'claimedByName': '',
       'sortOrder': nextOrder,
+      'addedByUid': addedByUid,
     });
   }
 
@@ -723,6 +725,15 @@ class TripRepository {
         .collection('members')
         .doc(uid)
         .update({'mutedMessages': muted});
+  }
+
+  Future<void> markMessagesSeen(String tripId, String uid) async {
+    await _db
+        .collection('trips')
+        .doc(tripId)
+        .collection('members')
+        .doc(uid)
+        .update({'lastSeenMessages': FieldValue.serverTimestamp()});
   }
 
   Future<void> deleteTrip(String tripId) async {
