@@ -28,6 +28,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  int _permissionRetries = 0;
+
   void _showEditNights(TripMember member, int maxNights) =>
       showModalBottomSheet(
         context: context,
@@ -101,13 +103,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unclaimed = supplies.where((s) => !s.isClaimed).length;
     final availRides = rides.fold(0, (sum, r) => sum + r.availableSeats);
     final pendingExpenseCount = expenses.where((e) => !e.approved).length;
-    final approvedTotal = expenses.where((e) => e.approved).fold(0.0, (sum, e) => sum + e.amount);
     final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+
+    // My remaining balance — mirrors the "YOUR TOTAL" on the Expenses screen
+    final myTotalOwed = uid != null ? (memberCosts[uid] ?? 0.0) : 0.0;
+    final myRemainingOwed =
+        (myTotalOwed - (currentMember?.amountPaid ?? 0.0)).clamp(0.0, double.infinity);
+    final myDueColor =
+        myRemainingOwed < 0.005 ? Colors.green.shade600 : Colors.red.shade600;
 
     return Scaffold(
       body: tripAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) {
+          // After joining a trip there can be a brief window where the
+          // Firestore listener service hasn't yet seen the memberIds write.
+          // Auto-retry up to 3 times before showing the real error.
+          final isPermDenied = e.toString().contains('permission-denied');
+          if (isPermDenied && _permissionRetries < 3) {
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                setState(() => _permissionRetries++);
+                ref.invalidate(tripStreamProvider(widget.tripId));
+              }
+            });
+            return const Center(child: CircularProgressIndicator());
+          }
+          return Center(child: Text('Error: $e'));
+        },
         data: (_) => ListView(
           padding: const EdgeInsets.only(top: 8, bottom: 24),
           children: [
@@ -212,7 +235,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Expenses',
+                                Text('My Expenses',
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -222,11 +245,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       label: '$pendingExpenseCount Pending',
                                       color: Colors.orange.shade700,
                                       bg: Colors.orange.shade50)
-                                else
+                                else if (expenses.isEmpty)
                                   Text(
-                                    expenses.isEmpty
-                                        ? 'No expenses yet'
-                                        : '${expenses.length} expenses',
+                                    'No expenses yet',
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall
@@ -239,15 +260,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ],
                             ),
                           ),
-                          Text(
-                            currency.format(approvedTotal),
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                currency.format(myRemainingOwed),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: myDueColor,
+                                    ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'Due',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: myDueColor,
+                                    ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

@@ -12,18 +12,152 @@ import '../../providers/user_provider.dart';
 import '../../utils/cost_calculator.dart';
 import '../../widgets/avatar_widget.dart';
 import '../../widgets/vivid_card.dart';
+import 'dashboard_screen.dart';
 
 final _currency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
-class ExpensesScreen extends ConsumerWidget {
+class ExpensesScreen extends ConsumerStatefulWidget {
   final String tripId;
   const ExpensesScreen({super.key, required this.tripId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final expenses = ref.watch(tripExpensesProvider(tripId)).valueOrNull ?? [];
-    final members = ref.watch(tripMembersProvider(tripId)).valueOrNull ?? [];
-    final trip = ref.watch(tripStreamProvider(tripId)).valueOrNull;
+  ConsumerState<ExpensesScreen> createState() => _ExpensesScreenState();
+}
+
+class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
+  // ── Pay Expenses — with payee selection when multiple submitters ──────────
+
+  void _showPayExpenses(
+    TripMember member,
+    double remainingOwed,
+    List<_SubmitterEntry> entries,
+  ) {
+    final nonZero = entries.where((e) => e.effectiveDue > 0.005).toList();
+
+    if (nonZero.length <= 1) {
+      // Single (or no) payee — go straight to payment sheet
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (_) => PayExpensesSheet(
+          tripId: widget.tripId,
+          member: member,
+          amountDue: remainingOwed,
+        ),
+      );
+    } else {
+      // Multiple payees — let the user pick who they are paying
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (sheetCtx) => _PayeeSelectionSheet(
+          submitterEntries: nonZero,
+          totalAmountDue: remainingOwed,
+          onSelected: (amountDue) {
+            Navigator.pop(sheetCtx);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (_) => PayExpensesSheet(
+                  tripId: widget.tripId,
+                  member: member,
+                  amountDue: amountDue,
+                ),
+              );
+            });
+          },
+        ),
+      );
+    }
+  }
+
+  // ── Add Payment — member picker (admin only) ──────────────────────────────
+
+  void _showAddPaymentPicker(
+    List<TripMember> activeMembers,
+    Map<String, double> memberCosts,
+    Map<String, double> houseCosts,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => _MemberPickerSheet(
+        activeMembers: activeMembers,
+        memberCosts: memberCosts,
+        onSelected: (member) {
+          Navigator.pop(sheetCtx);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final owed = memberCosts[member.uid] ?? 0.0;
+            final house = houseCosts[member.uid] ?? 0.0;
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (_) => AddPaymentSheet(
+                tripId: widget.tripId,
+                member: member,
+                computedOwed: owed,
+                houseShare: house,
+                expensesShare: owed - house,
+              ),
+            );
+          });
+        },
+      ),
+    );
+  }
+
+  // ── Add Expense sheet ─────────────────────────────────────────────────────
+
+  void _showAddSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _ExpenseFormSheet(
+        onSubmit: (description, amount, splitMethod) {
+          final profile = ref.read(userProfileProvider).valueOrNull;
+          final uid = ref.read(currentUidProvider) ?? '';
+          ref.read(expenseRepositoryProvider).addExpense(
+                widget.tripId,
+                description: description,
+                amount: amount,
+                splitMethod: splitMethod,
+                submittedByUid: uid,
+                submittedByName: profile?.displayName ?? '',
+              );
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expenses =
+        ref.watch(tripExpensesProvider(widget.tripId)).valueOrNull ?? [];
+    final members =
+        ref.watch(tripMembersProvider(widget.tripId)).valueOrNull ?? [];
+    final trip = ref.watch(tripStreamProvider(widget.tripId)).valueOrNull;
     final uid = ref.watch(currentUidProvider);
     final isAdmin = uid == trip?.ownerId;
     final currentMember = members.where((m) => m.uid == uid).firstOrNull;
@@ -45,7 +179,6 @@ class ExpensesScreen extends ConsumerWidget {
     final submitterEntries = <_SubmitterEntry>[];
     final adminUid = trip?.ownerId ?? '';
 
-    // Admin entry (always present — lodging)
     final adminMember = members.where((m) => m.uid == adminUid).firstOrNull;
     if (adminMember != null) {
       final adminExpenses = expensesBySubmitter[adminUid] ?? [];
@@ -62,7 +195,6 @@ class ExpensesScreen extends ConsumerWidget {
       ));
     }
 
-    // Other submitters (non-admin, have approved expenses)
     for (final entry in expensesBySubmitter.entries) {
       if (entry.key == adminUid) continue;
       final member = members.where((m) => m.uid == entry.key).firstOrNull;
@@ -75,8 +207,35 @@ class ExpensesScreen extends ConsumerWidget {
       ));
     }
 
-    final totalOwed =
-        submitterEntries.fold(0.0, (s, e) => s + e.total);
+    final totalOwed = submitterEntries.fold(0.0, (s, e) => s + e.total);
+
+    // Remaining balance after approved payments
+    final amountPaid = currentMember?.amountPaid ?? 0.0;
+    final remainingOwed = (totalOwed - amountPaid).clamp(0.0, double.infinity);
+    final paydownFactor = totalOwed > 0.001 ? remainingOwed / totalOwed : 0.0;
+
+    // Stamp effectiveDue on each card (proportional to their share of totalOwed)
+    final entriesWithDue = submitterEntries
+        .map((e) => _SubmitterEntry(
+              member: e.member,
+              lodgingShare: e.lodgingShare,
+              lodgingTotal: e.lodgingTotal,
+              lodgingSplitMethod: e.lodgingSplitMethod,
+              expenseShares: e.expenseShares,
+              total: e.total,
+              isAdmin: e.isAdmin,
+              effectiveDue: (e.total * paydownFactor).clamp(0.0, e.total),
+            ))
+        .toList();
+
+    // All member costs needed for the admin Add Payment picker
+    final allMemberCosts = trip != null
+        ? CostCalculator.computeMemberCosts(trip, activeMembers, expenses)
+        : <String, double>{};
+
+    final cs = Theme.of(context).colorScheme;
+    final dueColor =
+        remainingOwed < 0.005 ? Colors.green.shade600 : Colors.red.shade600;
 
     return Scaffold(
       appBar: AppBar(
@@ -84,48 +243,96 @@ class ExpensesScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Expenses'),
+        title: const Text('My Expenses'),
+        actions: [
+          // Pay Expenses — current user pays their own balance
+          if (currentMember != null)
+            IconButton(
+              icon: const Icon(Icons.payments),
+              tooltip: 'Pay Expenses',
+              onPressed: remainingOwed > 0.005
+                  ? () => _showPayExpenses(
+                      currentMember, remainingOwed, entriesWithDue)
+                  : null,
+            ),
+          // Add Payment — admin records a payment for any member
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              tooltip: 'Add Payment',
+              onPressed: () =>
+                  _showAddPaymentPicker(activeMembers, allMemberCosts, houseCosts),
+            ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSheet(context, ref),
+        onPressed: _showAddSheet,
         shape: const CircleBorder(),
         child: const Icon(Icons.add),
       ),
       body: ListView(
         padding: const EdgeInsets.only(top: 8, bottom: 88),
         children: [
-          // Total owed summary
+          // ── YOUR TOTAL — right-aligned, color-coded ──────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'YOUR TOTAL',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'YOUR TOTAL',
+                    style:
+                        Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.5,
+                            ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        _currency.format(remainingOwed),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: dueColor,
+                            ),
                       ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_currency.format(totalOwed)} owed',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(width: 6),
+                      Text(
+                        'Due',
+                        style:
+                            Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: dueColor,
+                                ),
                       ),
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
 
           // Per-member cards
-          for (int i = 0; i < submitterEntries.length; i++)
+          for (int i = 0; i < entriesWithDue.length; i++)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: _SubmitterCard(
-                tripId: tripId,
-                entry: submitterEntries[i],
+                tripId: widget.tripId,
+                entry: entriesWithDue[i],
                 accentIndex: i,
                 currentUid: uid,
                 trip: trip,
@@ -153,41 +360,16 @@ class ExpensesScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: _PendingExpenseCard(
-                  tripId: tripId,
+                  tripId: widget.tripId,
                   expense: pending[i],
                   isAdmin: isAdmin,
                   currentUid: uid,
                   currentUserName: currentMember?.displayName ?? '',
-                  accentIndex: submitterEntries.length + i,
+                  accentIndex: entriesWithDue.length + i,
                 ),
               ),
           ],
         ],
-      ),
-    );
-  }
-
-  void _showAddSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => _ExpenseFormSheet(
-        onSubmit: (description, amount, splitMethod) {
-          final profile = ref.read(userProfileProvider).valueOrNull;
-          final uid = ref.read(currentUidProvider) ?? '';
-          ref.read(expenseRepositoryProvider).addExpense(
-                tripId,
-                description: description,
-                amount: amount,
-                splitMethod: splitMethod,
-                submittedByUid: uid,
-                submittedByName: profile?.displayName ?? '',
-              );
-          Navigator.pop(context);
-        },
       ),
     );
   }
@@ -203,8 +385,11 @@ class _SubmitterEntry {
   final List<ExpenseShare> expenseShares;
   final double total;
   final bool isAdmin;
+  // Remaining balance after proportional payment allocation.
+  // Defaults to `total` if no payments have been made.
+  final double effectiveDue;
 
-  const _SubmitterEntry({
+  _SubmitterEntry({
     required this.member,
     this.lodgingShare = 0,
     this.lodgingTotal = 0,
@@ -212,7 +397,8 @@ class _SubmitterEntry {
     this.expenseShares = const [],
     required this.total,
     this.isAdmin = false,
-  });
+    double? effectiveDue,
+  }) : effectiveDue = effectiveDue ?? total;
 }
 
 // ── Submitter Card (expandable) ──────────────────────────────────────────────
@@ -243,6 +429,8 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final e = widget.entry;
+    final isPaidOff = e.effectiveDue < 0.005;
+    final amountColor = isPaidOff ? Colors.green.shade600 : cs.primary;
 
     return VividCard(
       accentIndex: widget.accentIndex,
@@ -277,19 +465,22 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
                         if (e.isAdmin)
                           Text(
                             'Trip Admin',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurface.withValues(alpha: 0.5),
-                                    ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color:
+                                      cs.onSurface.withValues(alpha: 0.5),
+                                ),
                           ),
                       ],
                     ),
                   ),
                   Text(
-                    _currency.format(e.total),
+                    _currency.format(e.effectiveDue),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: cs.primary,
+                          color: amountColor,
                         ),
                   ),
                   const SizedBox(width: 4),
@@ -297,15 +488,18 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
                     turns: _expanded ? 0.0 : -0.25,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(Icons.keyboard_arrow_down,
-                        size: 20, color: cs.onSurface.withValues(alpha: 0.4)),
+                        size: 20,
+                        color: cs.onSurface.withValues(alpha: 0.4)),
                   ),
                 ],
               ),
             ),
           ),
           if (_expanded) ...[
-            Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
-            // Lodging row (admin only)
+            Divider(
+                height: 1,
+                color: cs.outlineVariant.withValues(alpha: 0.3)),
+            // Lodging row (admin only) — shows original amounts for history
             if (e.isAdmin && e.lodgingShare > 0)
               _ExpenseRow(
                 icon: Icons.home,
@@ -315,7 +509,7 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
                 splitLabel: 'Split by Nights',
                 isApproved: true,
               ),
-            // Expense rows
+            // Expense rows — show original amounts for history
             for (final share in e.expenseShares)
               _ExpenseRow(
                 icon: Icons.receipt,
@@ -373,8 +567,8 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Expense'),
-        content:
-            Text('Remove "${expense.description}" (\$${expense.amount.toStringAsFixed(2)})?'),
+        content: Text(
+            'Remove "${expense.description}" (\$${expense.amount.toStringAsFixed(2)})?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -390,7 +584,8 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
               Navigator.pop(ctx);
             },
             child: Text('Delete',
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -398,7 +593,7 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
   }
 }
 
-// ── Expense Row (inside expanded card) ───────────────────────────────────────
+// ── Expense Row (inside expanded card — historical amounts unchanged) ─────────
 
 class _ExpenseRow extends StatelessWidget {
   final IconData icon;
@@ -616,8 +811,7 @@ class _PendingExpenseCard extends ConsumerWidget {
                     child: OutlinedButton(
                       onPressed: () => ref
                           .read(expenseRepositoryProvider)
-                          .deleteExpense(
-                              tripId, expense, currentUserName),
+                          .deleteExpense(tripId, expense, currentUserName),
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -644,6 +838,230 @@ class _PendingExpenseCard extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Payee Selection Sheet ─────────────────────────────────────────────────────
+// Shown before PayExpensesSheet when the user owes money to multiple submitters.
+
+class _PayeeSelectionSheet extends StatelessWidget {
+  final List<_SubmitterEntry> submitterEntries;
+  final double totalAmountDue;
+  final void Function(double amountDue) onSelected;
+
+  const _PayeeSelectionSheet({
+    required this.submitterEntries,
+    required this.totalAmountDue,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+            child: Text(
+              'Who are you paying?',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+            child: Text(
+              'Select a payee to pre-fill the amount, or pay your full balance at once.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurface.withValues(alpha: 0.6),
+                  ),
+            ),
+          ),
+          // Per-submitter options
+          for (final entry in submitterEntries)
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              leading: AvatarWidget(
+                seed: entry.member.avatarSeed,
+                colorIndex: entry.member.avatarColor,
+                size: 40,
+              ),
+              title: Text(entry.member.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: entry.isAdmin
+                  ? Text('Trip Admin',
+                      style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                          fontSize: 12))
+                  : null,
+              trailing: Text(
+                _currency.format(entry.effectiveDue),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: cs.primary,
+                    ),
+              ),
+              onTap: () => onSelected(entry.effectiveDue),
+            ),
+          // Pay Total option
+          const Divider(height: 1, indent: 20, endIndent: 20),
+          ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(Icons.payments, color: cs.primary, size: 20),
+            ),
+            title: const Text('Pay Total Balance',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(
+              'Pay your full remaining balance at once',
+              style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.5), fontSize: 12),
+            ),
+            trailing: Text(
+              _currency.format(totalAmountDue),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
+                  ),
+            ),
+            onTap: () => onSelected(totalAmountDue),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Member Picker Sheet ───────────────────────────────────────────────────────
+// Admin-only: select a member to add a payment for.
+
+class _MemberPickerSheet extends StatelessWidget {
+  final List<TripMember> activeMembers;
+  final Map<String, double> memberCosts;
+  final void Function(TripMember member) onSelected;
+
+  const _MemberPickerSheet({
+    required this.activeMembers,
+    required this.memberCosts,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+            child: Text(
+              'Add Payment For',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ),
+          for (final member in activeMembers)
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              leading: AvatarWidget(
+                seed: member.avatarSeed,
+                colorIndex: member.avatarColor,
+                size: 40,
+              ),
+              title: Text(member.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                'Paid: ${_currency.format(member.amountPaid)}',
+                style: TextStyle(
+                    color: cs.onSurface.withValues(alpha: 0.5), fontSize: 12),
+              ),
+              trailing: Builder(builder: (context) {
+                final owed = memberCosts[member.uid] ?? 0.0;
+                final remaining = (owed - member.amountPaid)
+                    .clamp(0.0, double.infinity);
+                final isPaidUp = remaining < 0.005;
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _currency.format(remaining),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isPaidUp
+                                ? Colors.green.shade600
+                                : cs.primary,
+                          ),
+                    ),
+                    Text(
+                      isPaidUp ? 'Paid up' : 'Due',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: isPaidUp
+                              ? Colors.green.shade600
+                              : cs.onSurface.withValues(alpha: 0.5)),
+                    ),
+                  ],
+                );
+              }),
+              onTap: () => onSelected(member),
+            ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

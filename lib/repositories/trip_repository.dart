@@ -458,13 +458,18 @@ class TripRepository {
   }
 
   Future<void> joinTripByCode(String tripId, TripMember member) async {
-    final batch = _db.batch();
     final tripRef = _db.collection('trips').doc(tripId);
-    batch.update(tripRef, {
-      'memberIds': FieldValue.arrayUnion([member.uid]),
+    await _db.runTransaction((tx) async {
+      final tripDoc = await tx.get(tripRef);
+      if (!tripDoc.exists) throw Exception('Trip not found');
+      final currentIds = List<String>.from(
+          (tripDoc.data() as Map<String, dynamic>)['memberIds'] as List? ?? []);
+      if (currentIds.contains(member.uid)) return; // Already a member
+      // Write a concrete array (not FieldValue.arrayUnion) so that
+      // diff().affectedKeys().hasOnly(['memberIds']) evaluates cleanly.
+      tx.update(tripRef, {'memberIds': [...currentIds, member.uid]});
+      tx.set(tripRef.collection('members').doc(member.uid), member.toMap());
     });
-    batch.set(tripRef.collection('members').doc(member.uid), member.toMap());
-    await batch.commit();
   }
 
   Future<void> addPendingInvite(String tripId, String email) async {

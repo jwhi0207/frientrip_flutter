@@ -75,6 +75,10 @@ class _JoinTripDialogState extends ConsumerState<JoinTripDialog> {
       );
       await repo.joinTripByCode(trip.id, member);
 
+      // Brief pause to let Firestore propagate the memberIds write to the
+      // real-time listener service before the trip screen opens its streams.
+      await Future.delayed(const Duration(milliseconds: 800));
+
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       setState(() {
