@@ -53,6 +53,36 @@ class CostCalculator {
     };
   }
 
+  static Map<String, List<ExpenseShare>> computeExpenseSharePerSubmitter(
+    Trip trip,
+    List<TripMember> members,
+    List<SharedExpense> expenses,
+    String currentUid,
+  ) {
+    final active = members.where((m) => !m.isDeactivated).toList();
+    final result = <String, List<ExpenseShare>>{};
+
+    for (final expense in expenses.where((e) => e.approved)) {
+      double myShare = 0.0;
+      if (expense.splitMethod == 'even') {
+        if (active.isNotEmpty) myShare = expense.amount / active.length;
+      } else if (expense.splitMethod == 'byNights') {
+        final shares = _splitByNights(expense.amount, trip.totalNights, active);
+        myShare = shares[currentUid] ?? 0.0;
+      }
+      if (myShare < 0.005) continue;
+
+      final submitterUid = expense.submittedByUid;
+      result.putIfAbsent(submitterUid, () => []);
+      result[submitterUid]!.add(ExpenseShare(
+        expense: expense,
+        myShare: myShare,
+      ));
+    }
+
+    return result;
+  }
+
   static Map<String, double> _splitByNights(
     double amount,
     int totalNights,
@@ -71,4 +101,11 @@ class CostCalculator {
     }
     return costs;
   }
+}
+
+class ExpenseShare {
+  final SharedExpense expense;
+  final double myShare;
+
+  const ExpenseShare({required this.expense, required this.myShare});
 }

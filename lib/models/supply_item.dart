@@ -8,6 +8,7 @@ class SupplyItem {
   final List<String> claimedByUids;
   final String claimedByName;
   final int sortOrder;
+  final String addedByUid;
 
   const SupplyItem({
     required this.id,
@@ -17,6 +18,7 @@ class SupplyItem {
     this.claimedByUids = const [],
     this.claimedByName = '',
     this.sortOrder = 0,
+    this.addedByUid = '',
   });
 
   List<String> get claimedNames => claimedByName.isNotEmpty
@@ -54,6 +56,7 @@ class SupplyItem {
       claimedByUids: [...claimedByUids, uid],
       claimedByName: [...claimedNames, displayName].join(','),
       sortOrder: sortOrder,
+      addedByUid: addedByUid,
     );
   }
 
@@ -72,6 +75,7 @@ class SupplyItem {
       claimedByUids: newUids,
       claimedByName: newNames.join(','),
       sortOrder: sortOrder,
+      addedByUid: addedByUid,
     );
   }
 
@@ -85,6 +89,7 @@ class SupplyItem {
       claimedByUids: List<String>.from(d['claimedByUids'] as List? ?? []),
       claimedByName: d['claimedByName'] as String? ?? '',
       sortOrder: (d['sortOrder'] as num?)?.toInt() ?? 0,
+      addedByUid: d['addedByUid'] as String? ?? '',
     );
   }
 
@@ -95,5 +100,6 @@ class SupplyItem {
         'claimedByUids': claimedByUids,
         'claimedByName': claimedByName,
         'sortOrder': sortOrder,
+        'addedByUid': addedByUid,
       };
 }

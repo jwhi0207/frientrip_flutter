@@ -51,6 +51,29 @@ class ExpenseRepository {
         "$adminName approved '${expense.description}' (\$${expense.amount})");
   }
 
+  Future<void> updateExpense(
+    String tripId,
+    SharedExpense expense, {
+    required String description,
+    required double amount,
+    required String splitMethod,
+    required String actorName,
+  }) async {
+    await _db
+        .collection('trips')
+        .doc(tripId)
+        .collection('expenses')
+        .doc(expense.id)
+        .update({
+      'description': description,
+      'amount': amount,
+      'splitMethod': splitMethod,
+      'approved': false,
+    });
+    await _logHistory(tripId, 'expenses',
+        "$actorName updated '${expense.description}' → '$description' (\$$amount)");
+  }
+
   Future<void> deleteExpense(
       String tripId, SharedExpense expense, String actorName) async {
     await _db
