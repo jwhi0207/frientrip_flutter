@@ -105,8 +105,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final pendingExpenseCount = expenses.where((e) => !e.approved).length;
     final currency = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
-    // My remaining balance — mirrors the "YOUR TOTAL" on the Expenses screen
-    final myTotalOwed = uid != null ? (memberCosts[uid] ?? 0.0) : 0.0;
+    // My remaining balance — what I owe to OTHER members only (excludes
+    // self-submitted expenses and lodging if I'm the admin).
+    final myTotalOwed = uid != null && trip != null
+        ? CostCalculator.computeMyOwed(trip, activeMembers, expenses, uid)
+        : 0.0;
     final myRemainingOwed =
         (myTotalOwed - (currentMember?.amountPaid ?? 0.0)).clamp(0.0, double.infinity);
     final myDueColor =

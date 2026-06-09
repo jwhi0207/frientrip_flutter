@@ -83,6 +83,41 @@ class CostCalculator {
     return result;
   }
 
+  /// Returns the total amount [currentUid] owes to OTHER members only.
+  /// Lodging is excluded if [currentUid] is the trip admin (they don't owe
+  /// themselves). Expenses submitted by [currentUid] are also excluded.
+  static double computeMyOwed(
+    Trip trip,
+    List<TripMember> members,
+    List<SharedExpense> expenses,
+    String currentUid,
+  ) {
+    if (members.isEmpty) return 0.0;
+    final active = members.where((m) => !m.isDeactivated).toList();
+    final houseCosts = computeHouseCosts(trip, members);
+    final adminUid = trip.ownerId;
+    double total = 0.0;
+
+    // Admin doesn't owe themselves for lodging
+    if (currentUid != adminUid) {
+      total += houseCosts[currentUid] ?? 0.0;
+    }
+
+    for (final e in expenses.where((ex) => ex.approved)) {
+      if (e.submittedByUid == currentUid) continue; // don't owe yourself
+      double share = 0.0;
+      if (e.splitMethod == 'even') {
+        if (active.isNotEmpty) share = e.amount / active.length;
+      } else if (e.splitMethod == 'byNights') {
+        share =
+            _splitByNights(e.amount, trip.totalNights, active)[currentUid] ??
+                0.0;
+      }
+      total += share;
+    }
+    return total;
+  }
+
   static Map<String, double> _splitByNights(
     double amount,
     int totalNights,

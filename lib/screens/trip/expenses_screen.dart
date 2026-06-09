@@ -180,7 +180,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     final adminUid = trip?.ownerId ?? '';
 
     final adminMember = members.where((m) => m.uid == adminUid).firstOrNull;
-    if (adminMember != null) {
+    if (adminMember != null && adminUid != uid) {
       final adminExpenses = expensesBySubmitter[adminUid] ?? [];
       final adminTotal =
           myHouseCost + adminExpenses.fold(0.0, (s, e) => s + e.myShare);
@@ -197,6 +197,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
     for (final entry in expensesBySubmitter.entries) {
       if (entry.key == adminUid) continue;
+      if (entry.key == uid) continue; // don't show a card for your own expenses
       final member = members.where((m) => m.uid == entry.key).firstOrNull;
       if (member == null) continue;
       final total = entry.value.fold(0.0, (s, e) => s + e.myShare);
@@ -430,7 +431,7 @@ class _SubmitterCardState extends ConsumerState<_SubmitterCard> {
     final cs = Theme.of(context).colorScheme;
     final e = widget.entry;
     final isPaidOff = e.effectiveDue < 0.005;
-    final amountColor = isPaidOff ? Colors.green.shade600 : cs.primary;
+    final amountColor = isPaidOff ? Colors.green.shade600 : Colors.red.shade600;
 
     return VividCard(
       accentIndex: widget.accentIndex,
