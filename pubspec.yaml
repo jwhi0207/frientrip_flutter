@@ -12,12 +12,15 @@ dependencies:
     sdk: flutter
 
   # Firebase
-  firebase_core: ^3.6.0
-  firebase_auth: ^5.3.1
-  cloud_firestore: ^5.4.4
-  firebase_storage: ^12.3.2
+  # firebase_core 4.x pulls Android BoM 34.x with firebase-auth 24.x, which
+  # fixes the session-loss regression introduced by 23.2.1 encrypted storage
+  # (firebase/firebase-android-sdk#7111)
+  firebase_core: ^4.10.0
+  firebase_auth: ^6.5.2
+  cloud_firestore: ^6.5.0
+  firebase_storage: ^13.4.2
   google_sign_in: ^6.2.1
-  firebase_messaging: ^15.1.6
+  firebase_messaging: ^16.3.0
   flutter_local_notifications: ^18.0.1
 
   # State management

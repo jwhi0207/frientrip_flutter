@@ -95,8 +95,9 @@ GoRouter with `StatefulShellRoute.indexedStack` for the 5-tab trip shell:
 - ✅ iOS push notifications: APNs key uploaded to Firebase, entitlements + background modes configured
 - ✅ TestFlight: first build uploaded to App Store Connect (v1.0.0, build 1)
 - ✅ iOS distribution signing: Apple Distribution certificate + App Store provisioning profile
-- ⏳ Google Play Store: awaiting approval before merging to main
+- ⏳ Google Play Store: awaiting approval before merging to main (NOTE: installed testing build was versionCode 112 — next upload must use a higher build number, e.g. `flutter build appbundle --release --build-number=113`)
 - ⏳ iOS: not yet tested on a physical device
+- ✅ Fixed (2026-06-10): users logged out after process death on Android. Root cause: firebase-auth 23.2.1 (BoM 33.16.0) encrypts persisted sessions with an Android Keystore key; on devices with flaky Keystore (seen on Pixel 9 Pro Fold: `FirebearStorageCryptoHelper: Keystore cannot load the key`) the session is never persisted. Fix: FlutterFire majors upgraded (firebase_core 4.x → BoM 34.14.0 / firebase-auth 24.1.0) + `android:allowBackup="false"` so restored-but-undecryptable state can't poison installs. iOS pods will also bump — rebuild/verify on the Mac.
 
 ## Cloud Functions
 - `functions/src/index.ts` — `onNewMessage` Firestore trigger (deployed to us-central1)

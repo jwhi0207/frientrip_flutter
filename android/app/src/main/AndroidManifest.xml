@@ -7,10 +7,14 @@
         android:maxSdkVersion="28" />
     <!-- Required on Android 13+ for FCM push notifications to be shown -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- allowBackup=false: Auto Backup restores Firebase Auth's encrypted
+         session but NOT its Android Keystore key, leaving undecryptable
+         state that signs users out (firebase-android-sdk#7111) -->
     <application
         android:label="frientrip"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
