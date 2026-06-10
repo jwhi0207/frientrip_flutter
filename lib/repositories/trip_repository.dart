@@ -742,7 +742,31 @@ class TripRepository {
   }
 
   Future<void> deleteTrip(String tripId) async {
-    await _db.collection('trips').doc(tripId).delete();
+    final tripRef = _db.collection('trips').doc(tripId);
+    // Delete all subcollection documents first. If the parent is deleted
+    // first, every subcollection rule (which calls get(trips/tripId)) starts
+    // returning permission-denied, which cascades into stream errors that can
+    // interrupt the UI before navigation completes.
+    const subcollections = [
+      'members',
+      'supplies',
+      'rides',
+      'rideRequests',
+      'expenses',
+      'history',
+      'messages',
+      'media',
+    ];
+    for (final name in subcollections) {
+      final snap = await tripRef.collection(name).get();
+      if (snap.docs.isEmpty) continue;
+      final batch = _db.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+    await tripRef.delete();
   }
 
   Future<void> _logHistory(

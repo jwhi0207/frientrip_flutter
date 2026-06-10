@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/members_provider.dart' hide tripMembersProvider;
 import '../../providers/messages_provider.dart';
 import '../../providers/trip_provider.dart';
+import '../../router.dart';
 import '../../widgets/avatar_widget.dart';
 import 'dashboard_screen.dart' show RenameTripDialog;
 
@@ -183,10 +184,20 @@ class _TripDrawer extends ConsumerWidget {
                 backgroundColor: Theme.of(ctx).colorScheme.error),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              await ref
-                  .read(tripRepositoryProvider)
-                  .deleteTrip(tripId);
-              if (context.mounted) context.go('/trips');
+              try {
+                await ref
+                    .read(tripRepositoryProvider)
+                    .deleteTrip(tripId);
+                // Navigate via the router provider — more reliable than
+                // context.go from inside an async callback in a drawer.
+                ref.read(routerProvider).go('/trips');
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete trip: $e')),
+                  );
+                }
+              }
             },
             child: const Text('Delete'),
           ),
