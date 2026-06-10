@@ -1,4 +1,5 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
@@ -41,7 +42,17 @@ export const onNewMessage = onDocumentCreated(
       })
       .map((doc) => doc.id);
 
-    if (recipientUids.length === 0) return;
+    logger.info("onNewMessage", {
+      tripId,
+      senderUid,
+      activeMembers: membersSnap.size,
+      recipients: recipientUids.length,
+    });
+
+    if (recipientUids.length === 0) {
+      logger.info("No recipients after filtering — nothing to send", { tripId });
+      return;
+    }
 
     // 3. Get FCM tokens for all recipients
     const userDocs = await Promise.all(
@@ -57,7 +68,13 @@ export const onNewMessage = onDocumentCreated(
       }
     }
 
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      logger.warn("Recipients have no FCM tokens — nothing to send", {
+        tripId,
+        recipients: recipientUids,
+      });
+      return;
+    }
 
     // 4. Get trip name for the notification body
     const tripDoc = await db.collection("trips").doc(tripId).get();
@@ -94,7 +111,23 @@ export const onNewMessage = onDocumentCreated(
       },
     });
 
-    // 6. Clean up stale/invalid tokens
+    logger.info("FCM send complete", {
+      tripId,
+      tokens: tokens.length,
+      success: response.successCount,
+      failure: response.failureCount,
+    });
+    response.responses.forEach((resp, idx) => {
+      if (resp.error) {
+        logger.warn("FCM send error", {
+          tokenSuffix: tokens[idx].slice(-8),
+          code: resp.error.code,
+          message: resp.error.message,
+        });
+      }
+    });
+
+    // 7. Clean up stale/invalid tokens
     const tokensToRemove: { uid: string; token: string }[] = [];
     response.responses.forEach((resp, idx) => {
       if (resp.error) {
@@ -116,10 +149,13 @@ export const onNewMessage = onDocumentCreated(
     });
 
     if (tokensToRemove.length > 0) {
+      logger.info("Removing stale tokens", { count: tokensToRemove.length });
       await Promise.all(
         tokensToRemove.map(({ uid, token }) =>
           db.collection("users").doc(uid).update({
-            fcmTokens: FieldValue.arrayRemove([token]),
+            // arrayRemove is variadic in the admin SDK — passing [token]
+            // would try to remove a nested array element
+            fcmTokens: FieldValue.arrayRemove(token),
           })
         )
       );

@@ -293,7 +293,7 @@ class _SuppliesScreenState extends ConsumerState<SuppliesScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Text(
-                'No supplies yet â€” tap + or quick-add above!',
+                'No supplies yet — tap + or quick-add above!',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context)

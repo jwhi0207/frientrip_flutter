@@ -28,6 +28,13 @@ class SharedExpense {
   factory SharedExpense.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     final ts = d['createdAt'];
+    // Canonical type is epoch millis (what the Android app writes and reads),
+    // but tolerate Timestamp for docs written before the millis migration.
+    final createdAt = ts is num
+        ? DateTime.fromMillisecondsSinceEpoch(ts.toInt())
+        : ts is Timestamp
+            ? ts.toDate()
+            : DateTime.now();
     return SharedExpense(
       id: doc.id,
       description: d['description'] as String? ?? '',
@@ -38,7 +45,7 @@ class SharedExpense {
       submittedByName: d['submittedByName'] as String? ?? '',
       approved: d['approved'] as bool? ?? false,
       linkedSupplyId: d['linkedSupplyId'] as String?,
-      createdAt: ts is Timestamp ? ts.toDate() : DateTime.now(),
+      createdAt: createdAt,
     );
   }
 
@@ -51,6 +58,6 @@ class SharedExpense {
         'submittedByName': submittedByName,
         'approved': approved,
         'linkedSupplyId': linkedSupplyId,
-        'createdAt': Timestamp.fromDate(createdAt),
+        'createdAt': createdAt.millisecondsSinceEpoch,
       };
 }

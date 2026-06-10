@@ -5,6 +5,8 @@
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+    <!-- Required on Android 13+ for FCM push notifications to be shown -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:label="frientrip"
         android:name="${applicationName}"
