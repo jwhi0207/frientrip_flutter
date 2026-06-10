@@ -16,7 +16,13 @@ class TripHistoryEvent {
   factory TripHistoryEvent.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     final ts = d['timestamp'];
-    final dt = ts is Timestamp ? ts.toDate() : DateTime.now();
+    // Canonical type is epoch millis (what the Android app writes and reads),
+    // but tolerate Timestamp for docs written before the millis migration.
+    final dt = ts is num
+        ? DateTime.fromMillisecondsSinceEpoch(ts.toInt())
+        : ts is Timestamp
+            ? ts.toDate()
+            : DateTime.now();
     return TripHistoryEvent(
       id: doc.id,
       category: d['category'] as String? ?? '',

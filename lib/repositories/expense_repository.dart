@@ -33,7 +33,9 @@ class ExpenseRepository {
       'submittedByName': submittedByName,
       'approved': false,
       'linkedSupplyId': linkedSupplyId,
-      'createdAt': FieldValue.serverTimestamp(),
+      // Epoch millis, not Timestamp: the Android app reads this with
+      // getLong() and throws on Timestamp values.
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
     });
     await _logHistory(
         tripId, 'expenses', "$submittedByName submitted '$description' (\$$amount)");
@@ -92,7 +94,9 @@ class ExpenseRepository {
       await _db.collection('trips').doc(tripId).collection('history').add({
         'category': category,
         'description': description,
-        'timestamp': FieldValue.serverTimestamp(),
+        // Epoch millis, not Timestamp: the Android app reads this with
+        // getLong() and throws on Timestamp values.
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } catch (_) {}
   }

@@ -35,75 +35,82 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/trips', builder: (_, __) => const TripListScreen()),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
 
-      // 5-tab trip shell
-      ShellRoute(
-        builder: (context, state, child) => TripShell(child: child),
+      // All per-trip routes are nested under /trips so the system back
+      // button pops to the My Trips list instead of exiting the app.
+      GoRoute(
+        path: '/trips',
+        builder: (_, __) => const TripListScreen(),
         routes: [
+          // 5-tab trip shell
+          ShellRoute(
+            builder: (context, state, child) => TripShell(child: child),
+            routes: [
+              GoRoute(
+                path: ':tripId/dashboard',
+                builder: (_, s) =>
+                    DashboardScreen(tripId: s.pathParameters['tripId']!),
+              ),
+              GoRoute(
+                path: ':tripId/supplies',
+                builder: (_, s) =>
+                    SuppliesScreen(tripId: s.pathParameters['tripId']!),
+              ),
+              GoRoute(
+                path: ':tripId/carpool',
+                builder: (_, s) =>
+                    CarpoolScreen(tripId: s.pathParameters['tripId']!),
+              ),
+              GoRoute(
+                path: ':tripId/photos',
+                builder: (_, s) =>
+                    PhotosScreen(tripId: s.pathParameters['tripId']!),
+              ),
+              GoRoute(
+                path: ':tripId/messages',
+                builder: (_, s) =>
+                    MessagesScreen(tripId: s.pathParameters['tripId']!),
+              ),
+            ],
+          ),
+
+          // Group screen (pushed from dashboard, no longer a tab)
           GoRoute(
-            path: '/trips/:tripId/dashboard',
+            path: ':tripId/group',
             builder: (_, s) =>
-                DashboardScreen(tripId: s.pathParameters['tripId']!),
+                GroupScreen(tripId: s.pathParameters['tripId']!),
+          ),
+
+          // Lodging (pushed from dashboard card, no longer a tab)
+          GoRoute(
+            path: ':tripId/lodging',
+            builder: (_, s) =>
+                LodgingScreen(tripId: s.pathParameters['tripId']!),
+          ),
+
+          // Pushed routes (full-screen, no shell)
+          GoRoute(
+            path: ':tripId/expenses',
+            builder: (_, s) =>
+                ExpensesScreen(tripId: s.pathParameters['tripId']!),
           ),
           GoRoute(
-            path: '/trips/:tripId/supplies',
+            path: ':tripId/manage',
             builder: (_, s) =>
-                SuppliesScreen(tripId: s.pathParameters['tripId']!),
+                ManageScreen(tripId: s.pathParameters['tripId']!),
           ),
           GoRoute(
-            path: '/trips/:tripId/carpool',
+            path: ':tripId/history',
             builder: (_, s) =>
-                CarpoolScreen(tripId: s.pathParameters['tripId']!),
+                HistoryScreen(tripId: s.pathParameters['tripId']!),
           ),
           GoRoute(
-            path: '/trips/:tripId/photos',
+            path: ':tripId/announcement',
             builder: (_, s) =>
-                PhotosScreen(tripId: s.pathParameters['tripId']!),
-          ),
-          GoRoute(
-            path: '/trips/:tripId/messages',
-            builder: (_, s) =>
-                MessagesScreen(tripId: s.pathParameters['tripId']!),
+                AnnouncementScreen(tripId: s.pathParameters['tripId']!),
           ),
         ],
-      ),
-
-      // Group screen (pushed from dashboard, no longer a tab)
-      GoRoute(
-        path: '/trips/:tripId/group',
-        builder: (_, s) =>
-            GroupScreen(tripId: s.pathParameters['tripId']!),
-      ),
-
-      // Lodging (pushed from dashboard card, no longer a tab)
-      GoRoute(
-        path: '/trips/:tripId/lodging',
-        builder: (_, s) =>
-            LodgingScreen(tripId: s.pathParameters['tripId']!),
-      ),
-
-      // Pushed routes (full-screen, no shell)
-      GoRoute(
-        path: '/trips/:tripId/expenses',
-        builder: (_, s) =>
-            ExpensesScreen(tripId: s.pathParameters['tripId']!),
-      ),
-      GoRoute(
-        path: '/trips/:tripId/manage',
-        builder: (_, s) =>
-            ManageScreen(tripId: s.pathParameters['tripId']!),
-      ),
-      GoRoute(
-        path: '/trips/:tripId/history',
-        builder: (_, s) =>
-            HistoryScreen(tripId: s.pathParameters['tripId']!),
-      ),
-      GoRoute(
-        path: '/trips/:tripId/announcement',
-        builder: (_, s) =>
-            AnnouncementScreen(tripId: s.pathParameters['tripId']!),
       ),
     ],
   );

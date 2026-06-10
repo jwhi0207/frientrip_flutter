@@ -89,7 +89,8 @@ GoRouter with `StatefulShellRoute.indexedStack` for the 5-tab trip shell:
 - ✅ iOS: `GoogleService-Info.plist` added, Google Sign-In URL scheme configured in `Info.plist`
 - ✅ Trip message board with edit/delete, real-time chat-style UI
 - ✅ Push notifications: Cloud Function deployed, FCM client wired up, per-trip mute (bell icon)
-- ✅ Push notifications working on Android
+- ✅ Push notifications verified end-to-end on Android (2026-06-10): requires POST_NOTIFICATIONS in the manifest (Android 13+), and foreground messages are displayed via flutter_local_notifications (Android never shows FCM notifications while the app is open)
+- ⏳ iOS push: APNs key/entitlements configured, client now waits for the APNS token before getToken (apns-token-not-set race) — still needs a physical-device test on the Mac
 - ✅ Apple Developer Program enrolled (Team ID: BMTU4V8N53)
 - ✅ iOS push notifications: APNs key uploaded to Firebase, entitlements + background modes configured
 - ✅ TestFlight: first build uploaded to App Store Connect (v1.0.0, build 1)
