@@ -22,11 +22,15 @@ class MessagesScreen extends ConsumerStatefulWidget {
   ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends ConsumerState<MessagesScreen> {
+class _MessagesScreenState extends ConsumerState<MessagesScreen>
+    with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
   bool _sending = false;
   DateTime? _unreadCutoff;
+  bool _initialScrollDone = false;
+  bool _keyboardVisible = false;
 
   // Edit mode state
   String? _editingMessageId;
@@ -34,9 +38,16 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final member = ref.read(currentUserMemberProvider(widget.tripId));
     _unreadCutoff = member?.lastSeenMessages;
     _markSeen();
+
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _scrollToBottom();
+      }
+    });
   }
 
   void _markSeen() {
@@ -47,20 +58,41 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   }
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    final bottomInset = WidgetsBinding
+        .instance.platformDispatcher.views.first.viewInsets.bottom;
+    final wasVisible = _keyboardVisible;
+    _keyboardVisible = bottomInset > 0;
+
+    if (_keyboardVisible && !wasVisible) {
+      // Keyboard just appeared — scroll to bottom
+      _scrollToBottom();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool animate = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
+        if (animate) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        } else {
+          _scrollController
+              .jumpTo(_scrollController.position.maxScrollExtent);
+        }
       }
     });
   }
@@ -252,6 +284,19 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Error loading messages')),
             data: (messages) {
+              if (!_initialScrollDone && messages.isNotEmpty) {
+                _initialScrollDone = true;
+                // Double post-frame to ensure ListView has fully laid out
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (_scrollController.hasClients) {
+                      _scrollController.jumpTo(
+                          _scrollController.position.maxScrollExtent);
+                    }
+                  });
+                });
+              }
+
               if (messages.isEmpty) {
                 return Center(
                   child: Column(
@@ -415,6 +460,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      focusNode: _focusNode,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.send,
                       maxLines: 4,
