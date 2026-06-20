@@ -1,11 +1,11 @@
-name: Deploy to Play Store
+name: Deploy to Play Store & TestFlight
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  deploy-android:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -108,3 +108,72 @@ jobs:
           service.edits().commit(packageName=PACKAGE_NAME, editId=edit_id).execute()
           print("Done")
           EOF
+
+  deploy-ios:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Create firebase_options.dart
+        run: echo "${{ secrets.FIREBASE_OPTIONS_DART }}" | base64 -d > lib/firebase_options.dart
+
+      - name: Create GoogleService-Info.plist
+        run: echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" | base64 -d > ios/Runner/GoogleService-Info.plist
+
+      - name: Install Apple certificate and provisioning profile
+        env:
+          P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERT_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
+
+          echo "$P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo "$PROFILE_BASE64" | base64 --decode -o $PROFILE_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build IPA
+        run: flutter build ipa --release --build-number=$((GITHUB_RUN_NUMBER + 100)) --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload to App Store Connect
+        env:
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          API_KEY_DIR=~/.private_keys
+          mkdir -p $API_KEY_DIR
+          echo "$API_KEY_BASE64" | base64 --decode -o "$API_KEY_DIR/AuthKey_$API_KEY_ID.p8"
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file build/ios/ipa/*.ipa \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
