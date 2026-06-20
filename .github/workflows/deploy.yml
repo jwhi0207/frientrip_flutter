@@ -164,6 +164,12 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
+      - name: Install CocoaPods dependencies
+        run: cd ios && pod install
+
+      - name: Resolve Swift package dependencies
+        run: xcodebuild -resolvePackageDependencies -workspace ios/Runner.xcworkspace -scheme Runner -clonedSourcePackagesDirPath ios/.package-cache
+
       - name: Build IPA
         run: flutter build ipa --release --build-number=$((GITHUB_RUN_NUMBER + 100)) --export-options-plist=ios/ExportOptions.plist
 
