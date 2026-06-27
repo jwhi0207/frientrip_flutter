@@ -70,8 +70,13 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read, create: if request.auth != null &&
           request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds;
-        allow update: if request.auth != null &&
-          request.auth.uid == resource.data.senderUid;
+        allow update: if request.auth != null && (
+          request.auth.uid == resource.data.senderUid ||
+          (
+            request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          )
+        );
       }
       match /history/{eventId} {
         allow read, write: if request.auth != null &&
